@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { FileDiff, GitBranch, FileText, FolderOpen, AlertCircle } from "lucide-react"
-import { GitDiffBranches, GetWorkingDirectory } from "../../wailsjs/go/main/App"
+import { GitDiffBranches, GetWorkingDirectory, OpenDirectoryDialog } from "../../wailsjs/go/main/App"
 
 export function CreateDiff() {
   const { t } = useTranslation()
@@ -19,8 +19,10 @@ export function CreateDiff() {
 
   const handleSelectFolder = async () => {
     try {
-      const wd = await GetWorkingDirectory()
-      setRepoPath(wd)
+      const dirPath = await OpenDirectoryDialog('Select Repository Folder')
+      if (dirPath) {
+        setRepoPath(dirPath)
+      }
     } catch {
       setError(t('errors.failedToGetWorkingDir'))
     }
