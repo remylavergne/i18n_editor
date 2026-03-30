@@ -1,12 +1,14 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { FileDiff, GitBranch, FileText, FolderOpen, AlertCircle, CheckCircle } from "lucide-react"
+import { FileDiff, GitBranch, FileText, FolderOpen, AlertCircle } from "lucide-react"
 import { GitDiffBranches, GetWorkingDirectory } from "../../wailsjs/go/main/App"
 
 export function CreateDiff() {
+  const { t } = useTranslation()
   const [repoPath, setRepoPath] = useState('')
   const [sourceBranch, setSourceBranch] = useState('')
   const [targetBranch, setTargetBranch] = useState('')
@@ -16,18 +18,17 @@ export function CreateDiff() {
   const [loading, setLoading] = useState(false)
 
   const handleSelectFolder = async () => {
-    // Use the current working directory as default
     try {
       const wd = await GetWorkingDirectory()
       setRepoPath(wd)
-    } catch (err) {
-      setError('Failed to get working directory')
+    } catch {
+      setError(t('errors.failedToGetWorkingDir'))
     }
   }
 
   const handleGenerateDiff = async () => {
     if (!repoPath || !sourceBranch || !targetBranch || !filePath) {
-      setError('Please fill in all fields')
+      setError(t('errors.fillAllFields'))
       return
     }
 
@@ -66,37 +67,37 @@ export function CreateDiff() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileDiff className="h-6 w-6" />
-            Create Diff
+            {t('createDiff.title')}
           </CardTitle>
           <CardDescription>
-            Generate a diff between two branches for a specific file
+            {t('createDiff.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="repo-path">Repository Path</Label>
+            <Label htmlFor="repo-path">{t('createDiff.repoPath')}</Label>
             <div className="flex gap-2">
               <Input 
                 id="repo-path" 
-                placeholder="Select repository folder" 
+                placeholder={t('createDiff.selectRepo')} 
                 value={repoPath}
                 onChange={(e) => setRepoPath(e.target.value)}
                 className="flex-1"
               />
               <Button variant="outline" onClick={handleSelectFolder}>
                 <FolderOpen className="h-4 w-4 mr-2" />
-                Browse
+                {t('createDiff.browse')}
               </Button>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="source-branch">Source Branch</Label>
+            <Label htmlFor="source-branch">{t('createDiff.sourceBranch')}</Label>
             <div className="relative">
               <GitBranch className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input 
                 id="source-branch" 
-                placeholder="main" 
+                placeholder={t('createDiff.sourceBranchPlaceholder')} 
                 value={sourceBranch}
                 onChange={(e) => setSourceBranch(e.target.value)}
                 className="pl-9" 
@@ -105,12 +106,12 @@ export function CreateDiff() {
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="target-branch">Target Branch</Label>
+            <Label htmlFor="target-branch">{t('createDiff.targetBranch')}</Label>
             <div className="relative">
               <GitBranch className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input 
                 id="target-branch" 
-                placeholder="feature/translations" 
+                placeholder={t('createDiff.targetBranchPlaceholder')} 
                 value={targetBranch}
                 onChange={(e) => setTargetBranch(e.target.value)}
                 className="pl-9" 
@@ -119,12 +120,12 @@ export function CreateDiff() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="file-path">File Path</Label>
+            <Label htmlFor="file-path">{t('createDiff.filePath')}</Label>
             <div className="relative">
               <FileText className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input 
                 id="file-path" 
-                placeholder="locales/en.json" 
+                placeholder={t('createDiff.filePathPlaceholder')} 
                 value={filePath}
                 onChange={(e) => setFilePath(e.target.value)}
                 className="pl-9" 
@@ -144,15 +145,15 @@ export function CreateDiff() {
             onClick={handleGenerateDiff}
             disabled={loading}
           >
-            {loading ? 'Generating...' : 'Generate Diff'}
+            {loading ? t('createDiff.generating') : t('createDiff.generateDiff')}
           </Button>
 
           {diffResult && (
             <div className="mt-6 space-y-2">
               <div className="flex items-center justify-between">
-                <Label>Diff Result</Label>
+                <Label>{t('createDiff.diffResult')}</Label>
                 <Button variant="outline" size="sm" onClick={handleDownload}>
-                  Download
+                  {t('createDiff.download')}
                 </Button>
               </div>
               <pre className="p-4 rounded-md bg-muted text-muted-foreground overflow-auto max-h-96 text-xs font-mono">

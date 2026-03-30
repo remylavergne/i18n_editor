@@ -1,0 +1,42 @@
+{
+  "app": {
+    "title": "i18n Editor",
+    "createDiff": "Create Diff",
+    "applyChanges": "Apply Changes"
+  },
+  "createDiff": {
+    "title": "Create Diff",
+    "description": "Generate a diff between two branches for a specific file",
+    "repoPath": "Repository Path",
+    "selectRepo": "Select repository folder",
+    "browse": "Browse",
+    "sourceBranch": "Source Branch",
+    "sourceBranchPlaceholder": "main",
+    "targetBranch": "Target Branch",
+    "targetBranchPlaceholder": "feature/translations",
+    "filePath": "File Path",
+    "filePathPlaceholder": "locales/en.json",
+    "generateDiff": "Generate Diff",
+    "generating": "Generating...",
+    "diffResult": "Diff Result",
+    "download": "Download",
+    "noDifferences": "No differences found between the specified branches for this file."
+  },
+  "applyChanges": {
+    "title": "Apply Changes",
+    "description": "Apply a diff file to update translations",
+    "targetFile": "Target File (To Update)",
+    "diffFile": "Diff File",
+    "apply": "Apply Changes"
+  },
+  "errors": {
+    "fillAllFields": "Please fill in all fields",
+    "failedToGetWorkingDir": "Failed to get working directory",
+    "gitError": "Git error"
+  },
+  "language": {
+    "en": "English",
+    "fr": "French",
+    "nl": "Dutch"
+  }
+}

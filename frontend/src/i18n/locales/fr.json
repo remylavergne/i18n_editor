@@ -1,0 +1,42 @@
+{
+  "app": {
+    "title": "Éditeur i18n",
+    "createDiff": "Créer un diff",
+    "applyChanges": "Appliquer les modifications"
+  },
+  "createDiff": {
+    "title": "Créer un diff",
+    "description": "Générer un diff entre deux branches pour un fichier spécifique",
+    "repoPath": "Chemin du dépôt",
+    "selectRepo": "Sélectionner le dossier du dépôt",
+    "browse": "Parcourir",
+    "sourceBranch": "Branche source",
+    "sourceBranchPlaceholder": "main",
+    "targetBranch": "Branche cible",
+    "targetBranchPlaceholder": "feature/translations",
+    "filePath": "Chemin du fichier",
+    "filePathPlaceholder": "locales/en.json",
+    "generateDiff": "Générer le diff",
+    "generating": "Génération...",
+    "diffResult": "Résultat du diff",
+    "download": "Télécharger",
+    "noDifferences": "Aucune différence trouvée entre les branches spécifiées pour ce fichier."
+  },
+  "applyChanges": {
+    "title": "Appliquer les modifications",
+    "description": "Appliquer un fichier diff pour mettre à jour les traductions",
+    "targetFile": "Fichier cible (à mettre à jour)",
+    "diffFile": "Fichier diff",
+    "apply": "Appliquer les modifications"
+  },
+  "errors": {
+    "fillAllFields": "Veuillez remplir tous les champs",
+    "failedToGetWorkingDir": "Échec de la récupération du répertoire de travail",
+    "gitError": "Erreur git"
+  },
+  "language": {
+    "en": "Anglais",
+    "fr": "Français",
+    "nl": "Néerlandais"
+  }
+}

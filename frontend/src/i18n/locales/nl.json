@@ -1,0 +1,42 @@
+{
+  "app": {
+    "title": "i18n Editor",
+    "createDiff": "Diff maken",
+    "applyChanges": "Wijzigingen toepassen"
+  },
+  "createDiff": {
+    "title": "Diff maken",
+    "description": "Genereer een diff tussen twee branches voor een specifiek bestand",
+    "repoPath": "Repository pad",
+    "selectRepo": "Selecteer repository map",
+    "browse": "Bladeren",
+    "sourceBranch": "Bron branch",
+    "sourceBranchPlaceholder": "main",
+    "targetBranch": "Doel branch",
+    "targetBranchPlaceholder": "feature/translations",
+    "filePath": "Bestandspad",
+    "filePathPlaceholder": "locales/en.json",
+    "generateDiff": "Genereer diff",
+    "generating": "Genereren...",
+    "diffResult": "Diff resultaat",
+    "download": "Downloaden",
+    "noDifferences": "Geen verschillen gevonden tussen de opgegeven branches voor dit bestand."
+  },
+  "applyChanges": {
+    "title": "Wijzigingen toepassen",
+    "description": "Pas een diff bestand toe om vertalingen bij te werken",
+    "targetFile": "Doelbestand (bij te werken)",
+    "diffFile": "Diff bestand",
+    "apply": "Wijzigingen toepassen"
+  },
+  "errors": {
+    "fillAllFields": "Vul alle velden in",
+    "failedToGetWorkingDir": "Kan werkmap niet ophalen",
+    "gitError": "Git fout"
+  },
+  "language": {
+    "en": "Engels",
+    "fr": "Frans",
+    "nl": "Nederlands"
+  }
+}
