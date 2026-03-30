@@ -1,28 +1,44 @@
-import {useState} from 'react';
-import logo from './assets/images/logo-universal.png';
-import './App.css';
-import {Greet} from "../wailsjs/go/main/App";
+import { useState } from 'react';
+import { Button } from './components/ui/button';
+import { CreateDiff } from './screens/CreateDiff';
+import { ApplyChanges } from './screens/ApplyChanges';
+import { FileDiff, FileSpreadsheet } from 'lucide-react';
+
+type Screen = 'create-diff' | 'apply-changes';
 
 function App() {
-    const [resultText, setResultText] = useState("Please enter your name below 👇");
-    const [name, setName] = useState('');
-    const updateName = (e: any) => setName(e.target.value);
-    const updateResultText = (result: string) => setResultText(result);
+  const [currentScreen, setCurrentScreen] = useState<Screen>('create-diff');
 
-    function greet() {
-        Greet(name).then(updateResultText);
-    }
-
-    return (
-        <div id="App">
-            <img src={logo} id="logo" alt="logo"/>
-            <div id="result" className="result">{resultText}</div>
-            <div id="input" className="input-box">
-                <input id="name" className="input" onChange={updateName} autoComplete="off" name="input" type="text"/>
-                <button className="btn" onClick={greet}>Greet</button>
-            </div>
+  return (
+    <div className="min-h-screen bg-background">
+      <nav className="border-b bg-card">
+        <div className="container mx-auto flex items-center gap-2 p-4">
+          <h1 className="text-xl font-bold mr-6">i18n Editor</h1>
+          <Button
+            variant={currentScreen === 'create-diff' ? 'default' : 'ghost'}
+            onClick={() => setCurrentScreen('create-diff')}
+            className="gap-2"
+          >
+            <FileDiff className="h-4 w-4" />
+            Create Diff
+          </Button>
+          <Button
+            variant={currentScreen === 'apply-changes' ? 'default' : 'ghost'}
+            onClick={() => setCurrentScreen('apply-changes')}
+            className="gap-2"
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            Apply Changes
+          </Button>
         </div>
-    )
+      </nav>
+      
+      <main>
+        {currentScreen === 'create-diff' && <CreateDiff />}
+        {currentScreen === 'apply-changes' && <ApplyChanges />}
+      </main>
+    </div>
+  );
 }
 
-export default App
+export default App;
