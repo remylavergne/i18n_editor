@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { FileDiff, GitBranch, FileText, FolderOpen, AlertCircle } from "lucide-react"
-import { GitDiffBranches, GetWorkingDirectory, OpenFileDialog } from "../../wailsjs/go/main/App"
+import { FileDiff, GitBranch, FolderOpen, AlertCircle } from "lucide-react"
+import { GitDiffBranches, OpenDirectoryDialog } from "../../wailsjs/go/main/App"
 import { DiffViewer } from "@/components/DiffViewer"
 
 export function CreateDiff() {
   const { t } = useTranslation()
+  const [repoPath, setRepoPath] = useState('')
   const [sourceBranch, setSourceBranch] = useState('')
   const [targetBranch, setTargetBranch] = useState('')
   const [filePath, setFilePath] = useState('')
@@ -17,19 +18,19 @@ export function CreateDiff() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const handleSelectFile = async () => {
+  const handleSelectRepo = async () => {
     try {
-      const file = await OpenFileDialog('Select File to Diff', 'All Files', '*.*')
-      if (file) {
-        setFilePath(file)
+      const dir = await OpenDirectoryDialog('Select Repository Folder')
+      if (dir) {
+        setRepoPath(dir)
       }
     } catch {
-      setError('Failed to select file')
+      setError('Failed to select repository')
     }
   }
 
   const handleGenerateDiff = async () => {
-    if (!sourceBranch || !targetBranch || !filePath) {
+    if (!repoPath || !sourceBranch || !targetBranch || !filePath) {
       setError(t('errors.fillAllFields'))
       return
     }
@@ -39,8 +40,7 @@ export function CreateDiff() {
     setDiffResult('')
 
     try {
-      const wd = await GetWorkingDirectory()
-      const result = await GitDiffBranches(wd, sourceBranch, targetBranch, filePath)
+      const result = await GitDiffBranches(repoPath, sourceBranch, targetBranch, filePath)
       setDiffResult(result)
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err)
@@ -78,20 +78,30 @@ export function CreateDiff() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="file-path">{t('createDiff.filePath')}</Label>
+            <Label htmlFor="repo-path">{t('createDiff.repoPath')}</Label>
             <div className="flex gap-2">
               <Input 
-                id="file-path" 
-                placeholder={t('createDiff.filePathPlaceholder')} 
-                value={filePath}
-                onChange={(e) => setFilePath(e.target.value)}
+                id="repo-path" 
+                placeholder={t('createDiff.selectRepo')} 
+                value={repoPath}
+                onChange={(e) => setRepoPath(e.target.value)}
                 className="flex-1"
               />
-              <Button variant="outline" onClick={handleSelectFile}>
+              <Button variant="outline" onClick={handleSelectRepo}>
                 <FolderOpen className="h-4 w-4 mr-2" />
                 {t('createDiff.browse')}
               </Button>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="file-path">{t('createDiff.filePath')}</Label>
+            <Input 
+              id="file-path" 
+              placeholder={t('createDiff.filePathPlaceholder')} 
+              value={filePath}
+              onChange={(e) => setFilePath(e.target.value)}
+            />
           </div>
 
           <div className="space-y-2">

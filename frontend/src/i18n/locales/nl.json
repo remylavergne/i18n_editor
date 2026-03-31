@@ -7,8 +7,10 @@
   "createDiff": {
     "title": "Diff maken",
     "description": "Genereer een diff tussen twee branches voor een specifiek bestand",
-    "filePath": "Bestandspad",
-    "filePathPlaceholder": "locales/en.json of klik Bladeren",
+    "repoPath": "Repository pad",
+    "selectRepo": "Selecteer repository map",
+    "filePath": "Bestandspad (relatief aan repo)",
+    "filePathPlaceholder": "locales/en.json",
     "browse": "Bladeren",
     "sourceBranch": "Bron branch",
     "sourceBranchPlaceholder": "main",

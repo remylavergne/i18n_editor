@@ -7,8 +7,10 @@
   "createDiff": {
     "title": "Créer un diff",
     "description": "Générer un diff entre deux branches pour un fichier spécifique",
-    "filePath": "Chemin du fichier",
-    "filePathPlaceholder": "locales/en.json ou cliquer Parcourir",
+    "repoPath": "Chemin du dépôt",
+    "selectRepo": "Sélectionner le dossier du dépôt",
+    "filePath": "Chemin du fichier (relatif au dépôt)",
+    "filePathPlaceholder": "locales/en.json",
     "browse": "Parcourir",
     "sourceBranch": "Branche source",
     "sourceBranchPlaceholder": "main",

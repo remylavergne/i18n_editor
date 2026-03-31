@@ -7,8 +7,10 @@
   "createDiff": {
     "title": "Create Diff",
     "description": "Generate a diff between two branches for a specific file",
-    "filePath": "File Path",
-    "filePathPlaceholder": "locales/en.json or click Browse",
+    "repoPath": "Repository Path",
+    "selectRepo": "Select repository folder",
+    "filePath": "File Path (relative to repo)",
+    "filePathPlaceholder": "locales/en.json",
     "browse": "Browse",
     "sourceBranch": "Source Branch",
     "sourceBranchPlaceholder": "main",
