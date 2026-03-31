@@ -54,7 +54,10 @@
     "nextChange": "Volgende wijziging",
     "downloadFile": "Download nieuw bestand",
     "overwriteFile": "Doelbestand overschrijven",
-    "overwriteSuccess": "Bestand succesvol bijgewerkt!"
+    "overwriteSuccess": "Bestand succesvol bijgewerkt!",
+    "rawDiff": "Ruwe diff",
+    "fullDiff": "Volledige diff",
+    "changes": "wijzigingen"
   },
   "errors": {
     "fillAllFields": "Vul alle velden in",

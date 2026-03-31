@@ -1,0 +1,20 @@
+diff --git a/locales/en.json b/locales/en.json
+index abc123..def456 100644
+--- a/locales/en.json
++++ b/locales/en.json
+@@ -5,6 +5,9 @@
+     "welcome": "Welcome to i18n Editor"
+   },
+   "common": {
+     "save": "Save",
+-    "apply": "Apply"
++    "apply": "Apply",
++    "delete": "Delete"
+   },
+-  "home": {
+-    "greeting": "Hello, World!"
++  "home": {
++    "greeting": "Hello, World!",
++    "newGreeting": "Hello, Universe!"
+   }
+ }

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { FileSpreadsheet, FolderOpen, AlertCircle, CheckCircle, ChevronRight, Save, ArrowRight, X, SkipForward } from "lucide-react"
 import { ParseDiffFile, ReadJsonFile, SaveAppliedChanges, CheckAlreadyApplied, OpenFileDialog, ReadTextFile, GetAppliedChangesAsJson, SaveFileDialog, SaveTextFile } from "../../wailsjs/go/main/App"
+import { DiffViewer } from "@/components/DiffViewer"
 
 interface DiffChange {
   type: string
@@ -276,8 +277,31 @@ export function ApplyChanges() {
     const changeType = getChangeTypeLabel(currentChange.type)
     const isAlreadyApplied = alreadyApplied[currentIndex]
 
+    const extractDiffSection = () => {
+      if (!diffContent) return ''
+      const lines = diffContent.split('\n')
+      const relevantLines: string[] = []
+      let foundKey = false
+      let linesAdded = 0
+      
+      for (const line of lines) {
+        const keyPart = currentChange.key.split('.').pop() || ''
+        if (line.includes(keyPart)) {
+          foundKey = true
+        }
+        if (foundKey) {
+          relevantLines.push(line)
+          linesAdded++
+          if (linesAdded >= 6) break
+        }
+      }
+      return relevantLines.join('\n')
+    }
+
+    const diffSection = extractDiffSection()
+
     return (
-      <div className="container mx-auto py-8 max-w-2xl">
+      <div className="container mx-auto py-8 max-w-3xl">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -289,6 +313,22 @@ export function ApplyChanges() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            <details className="rounded-md border">
+              <summary className="px-4 py-2 cursor-pointer bg-muted font-medium text-sm">
+                {t('applyChanges.fullDiff')} ({changes.length} {t('applyChanges.changes')})
+              </summary>
+              <div className="p-3">
+                <DiffViewer content={diffContent} maxHeight="max-h-48" />
+              </div>
+            </details>
+
+            {diffSection && (
+              <div className="space-y-2">
+                <Label className="text-xs uppercase text-muted-foreground">{t('applyChanges.rawDiff')}</Label>
+                <DiffViewer content={diffSection} maxHeight="max-h-32" />
+              </div>
+            )}
+
             <div className="p-4 rounded-lg bg-muted space-y-3">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium">Key:</span>

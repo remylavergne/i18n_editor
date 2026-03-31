@@ -54,7 +54,10 @@
     "nextChange": "Modification suivante",
     "downloadFile": "Télécharger nouveau fichier",
     "overwriteFile": "Écraser fichier cible",
-    "overwriteSuccess": "Fichier mis à jour avec succès !"
+    "overwriteSuccess": "Fichier mis à jour avec succès !",
+    "rawDiff": "Diff brut",
+    "fullDiff": "Diff complet",
+    "changes": "modifications"
   },
   "errors": {
     "fillAllFields": "Veuillez remplir tous les champs",

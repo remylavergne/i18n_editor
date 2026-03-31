@@ -54,7 +54,10 @@
     "nextChange": "Next Change",
     "downloadFile": "Download as New File",
     "overwriteFile": "Overwrite Target File",
-    "overwriteSuccess": "File updated successfully!"
+    "overwriteSuccess": "File updated successfully!",
+    "rawDiff": "Raw Diff",
+    "fullDiff": "Full Diff",
+    "changes": "changes"
   },
   "errors": {
     "fillAllFields": "Please fill in all fields",

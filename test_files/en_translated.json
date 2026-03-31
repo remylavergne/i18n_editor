@@ -1,0 +1,14 @@
+{
+  "app": {
+    "title": "i18n Editor",
+    "welcome": "Welcome to i18n Editor"
+  },
+  "apply": "Apply",
+  "common": {
+    "apply": "Apply",
+    "cancel": "Cancel",
+    "reject": "Reject",
+    "save": "Save"
+  },
+  "delete": "Delete remy"
+}
