@@ -5,11 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { FileDiff, GitBranch, FileText, FolderOpen, AlertCircle } from "lucide-react"
-import { GitDiffBranches, GetWorkingDirectory, OpenDirectoryDialog } from "../../wailsjs/go/main/App"
+import { GitDiffBranches, GetWorkingDirectory, OpenFileDialog } from "../../wailsjs/go/main/App"
+import { DiffViewer } from "@/components/DiffViewer"
 
 export function CreateDiff() {
   const { t } = useTranslation()
-  const [repoPath, setRepoPath] = useState('')
   const [sourceBranch, setSourceBranch] = useState('')
   const [targetBranch, setTargetBranch] = useState('')
   const [filePath, setFilePath] = useState('')
@@ -17,19 +17,19 @@ export function CreateDiff() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const handleSelectFolder = async () => {
+  const handleSelectFile = async () => {
     try {
-      const dirPath = await OpenDirectoryDialog('Select Repository Folder')
-      if (dirPath) {
-        setRepoPath(dirPath)
+      const file = await OpenFileDialog('Select File to Diff', 'All Files', '*.*')
+      if (file) {
+        setFilePath(file)
       }
     } catch {
-      setError(t('errors.failedToGetWorkingDir'))
+      setError('Failed to select file')
     }
   }
 
   const handleGenerateDiff = async () => {
-    if (!repoPath || !sourceBranch || !targetBranch || !filePath) {
+    if (!sourceBranch || !targetBranch || !filePath) {
       setError(t('errors.fillAllFields'))
       return
     }
@@ -39,7 +39,8 @@ export function CreateDiff() {
     setDiffResult('')
 
     try {
-      const result = await GitDiffBranches(repoPath, sourceBranch, targetBranch, filePath)
+      const wd = await GetWorkingDirectory()
+      const result = await GitDiffBranches(wd, sourceBranch, targetBranch, filePath)
       setDiffResult(result)
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err)
@@ -56,7 +57,7 @@ export function CreateDiff() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `diff-${sourceBranch}-${targetBranch}-${filePath.replace(/\//g, '-')}.txt`
+    a.download = `diff-${sourceBranch}-${targetBranch}-${filePath.split('/').pop() || 'file'}.patch`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -77,16 +78,16 @@ export function CreateDiff() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="repo-path">{t('createDiff.repoPath')}</Label>
+            <Label htmlFor="file-path">{t('createDiff.filePath')}</Label>
             <div className="flex gap-2">
               <Input 
-                id="repo-path" 
-                placeholder={t('createDiff.selectRepo')} 
-                value={repoPath}
-                onChange={(e) => setRepoPath(e.target.value)}
+                id="file-path" 
+                placeholder={t('createDiff.filePathPlaceholder')} 
+                value={filePath}
+                onChange={(e) => setFilePath(e.target.value)}
                 className="flex-1"
               />
-              <Button variant="outline" onClick={handleSelectFolder}>
+              <Button variant="outline" onClick={handleSelectFile}>
                 <FolderOpen className="h-4 w-4 mr-2" />
                 {t('createDiff.browse')}
               </Button>
@@ -121,20 +122,6 @@ export function CreateDiff() {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="file-path">{t('createDiff.filePath')}</Label>
-            <div className="relative">
-              <FileText className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input 
-                id="file-path" 
-                placeholder={t('createDiff.filePathPlaceholder')} 
-                value={filePath}
-                onChange={(e) => setFilePath(e.target.value)}
-                className="pl-9" 
-              />
-            </div>
-          </div>
-
           {error && (
             <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 text-destructive">
               <AlertCircle className="h-4 w-4" />
@@ -158,9 +145,7 @@ export function CreateDiff() {
                   {t('createDiff.download')}
                 </Button>
               </div>
-              <pre className="p-4 rounded-md bg-muted text-muted-foreground overflow-auto max-h-96 text-xs font-mono">
-                {diffResult}
-              </pre>
+              <DiffViewer content={diffResult} maxHeight="max-h-96" />
             </div>
           )}
         </CardContent>
