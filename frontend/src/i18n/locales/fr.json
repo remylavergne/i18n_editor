@@ -2,7 +2,31 @@
   "app": {
     "title": "Éditeur i18n",
     "createDiff": "Créer un diff",
-    "applyChanges": "Appliquer les modifications"
+    "applyChanges": "Appliquer les modifications",
+    "editApplied": "Modifier applique"
+  },
+  "editApplied": {
+    "title": "Modifier les libelles appliques",
+    "description": "Chargez votre JSON de traduction et le fichier de modifications standardisees, puis modifiez les valeurs ajoutees/modifiees ligne par ligne.",
+    "targetFile": "Fichier cible",
+    "changesFile": "Fichier de modifications standardisees",
+    "selectJsonFile": "Selectionner le fichier JSON de traduction",
+    "selectChangesFile": "Selectionner le fichier JSON de modifications standardisees",
+    "load": "Charger les lignes",
+    "loading": "Chargement...",
+    "listTitle": "Lignes modifiables ({{count}})",
+    "listDescription": "Chaque ligne affiche une cle ajoutee/modifiee. Modifiez la valeur puis appliquez ligne par ligne.",
+    "path": "Chemin",
+    "currentOrNewValue": "Valeur actuelle",
+    "applyRow": "Appliquer la ligne",
+    "saving": "Enregistrement...",
+    "context": "Contexte",
+    "component": "Composant",
+    "rowSaved": "Enregistre : {{path}}",
+    "loadedSummary": "{{count}} lignes modifiables chargees.",
+    "patchNotFullyApplied": "{{count}} modification(s) de ce patch ne sont pas encore appliquees dans le fichier cible. Veuillez d'abord utiliser Appliquer les modifications.",
+    "invalidChangesFile": "Fichier de modifications invalide. Un tableau JSON est attendu.",
+    "selectFileError": "Echec de la selection du fichier"
   },
   "createDiff": {
     "title": "Créer un diff",

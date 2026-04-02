@@ -2,7 +2,31 @@
   "app": {
     "title": "i18n Editor",
     "createDiff": "Diff maken",
-    "applyChanges": "Wijzigingen toepassen"
+    "applyChanges": "Wijzigingen toepassen",
+    "editApplied": "Toegepaste labels bewerken"
+  },
+  "editApplied": {
+    "title": "Toegepaste labels bewerken",
+    "description": "Laad je vertaling-JSON en gestandaardiseerd wijzigingsbestand, en bewerk toegepaste toegevoegde/gewijzigde labels per regel.",
+    "targetFile": "Doelbestand",
+    "changesFile": "Gestandaardiseerd wijzigingsbestand",
+    "selectJsonFile": "Selecteer JSON vertaalbestand",
+    "selectChangesFile": "Selecteer gestandaardiseerd JSON-wijzigingsbestand",
+    "load": "Regels laden",
+    "loading": "Laden...",
+    "listTitle": "Bewerkbare regels ({{count}})",
+    "listDescription": "Elke regel toont een toegevoegde/gewijzigde sleutel. Bewerk de waarde en pas per regel toe.",
+    "path": "Pad",
+    "currentOrNewValue": "Huidige waarde",
+    "applyRow": "Regel toepassen",
+    "saving": "Opslaan...",
+    "context": "Context",
+    "component": "Component",
+    "rowSaved": "Opgeslagen: {{path}}",
+    "loadedSummary": "{{count}} bewerkbare regels geladen.",
+    "patchNotFullyApplied": "{{count}} wijziging(en) uit deze patch zijn nog niet toegepast in het doelbestand. Gebruik eerst Wijzigingen toepassen.",
+    "invalidChangesFile": "Ongeldig wijzigingsbestand. Een JSON-array wordt verwacht.",
+    "selectFileError": "Selecteren van bestand mislukt"
   },
   "createDiff": {
     "title": "Diff maken",

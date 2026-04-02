@@ -4,11 +4,12 @@ import { Button } from './components/ui/button';
 import { LanguageSelector } from './components/LanguageSelector';
 import { CreateDiff } from './screens/CreateDiff';
 import { ApplyChanges } from './screens/ApplyChanges';
-import { FileDiff, FileSpreadsheet } from 'lucide-react';
+import { EditAppliedChanges } from './screens/EditAppliedChanges';
+import { FileDiff, FileSpreadsheet, PencilLine } from 'lucide-react';
 
 import './i18n';
 
-type Screen = 'create-diff' | 'apply-changes';
+type Screen = 'create-diff' | 'apply-changes' | 'edit-applied';
 
 function App() {
   const { t } = useTranslation();
@@ -36,6 +37,14 @@ function App() {
               <FileSpreadsheet className="h-4 w-4" />
               {t('app.applyChanges')}
             </Button>
+            <Button
+              variant={currentScreen === 'edit-applied' ? 'default' : 'ghost'}
+              onClick={() => setCurrentScreen('edit-applied')}
+              className="gap-2"
+            >
+              <PencilLine className="h-4 w-4" />
+              {t('app.editApplied')}
+            </Button>
           </div>
           <LanguageSelector />
         </div>
@@ -44,6 +53,7 @@ function App() {
       <main>
         {currentScreen === 'create-diff' && <CreateDiff />}
         {currentScreen === 'apply-changes' && <ApplyChanges />}
+        {currentScreen === 'edit-applied' && <EditAppliedChanges />}
       </main>
     </div>
   );

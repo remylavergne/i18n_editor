@@ -2,7 +2,31 @@
   "app": {
     "title": "i18n Editor",
     "createDiff": "Create Diff",
-    "applyChanges": "Apply Changes"
+    "applyChanges": "Apply Changes",
+    "editApplied": "Edit Applied"
+  },
+  "editApplied": {
+    "title": "Edit Applied Labels",
+    "description": "Load your translation JSON and standardized changes file, then edit applied added/changed labels line by line.",
+    "targetFile": "Target File",
+    "changesFile": "Standardized Changes File",
+    "selectJsonFile": "Select JSON translation file",
+    "selectChangesFile": "Select standardized changes JSON file",
+    "load": "Load Rows",
+    "loading": "Loading...",
+    "listTitle": "Editable rows ({{count}})",
+    "listDescription": "Each row shows one added/changed key. Edit value and apply line by line.",
+    "path": "Path",
+    "currentOrNewValue": "Current value",
+    "applyRow": "Apply row",
+    "saving": "Saving...",
+    "context": "Context",
+    "component": "Component",
+    "rowSaved": "Saved: {{path}}",
+    "loadedSummary": "Loaded {{count}} editable rows.",
+    "patchNotFullyApplied": "{{count}} change(s) from this patch are not applied in the target file yet. Please use Apply Changes first.",
+    "invalidChangesFile": "Invalid changes file. Expected a JSON array.",
+    "selectFileError": "Failed to select file"
   },
   "createDiff": {
     "title": "Create Diff",
