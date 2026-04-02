@@ -1,0 +1,47 @@
+{
+  "HOME": {
+    "HERO": {
+      "TITLE": "Welcome to your control center",
+      "SUBTITLE": "Run everything from one unified workspace",
+      "CTA_PRIMARY": "Get started",
+      "BADGE": "New"
+    }
+  },
+  "AUTH": {
+    "LOGIN": {
+      "TITLE": "Log in",
+      "SUBMIT": "Sign in",
+      "SSO": "Continue with SSO"
+    }
+  },
+  "DASHBOARD": {
+    "STATS": {
+      "USERS": "Team members",
+      "PROJECTS": "Projects",
+      "REVENUE": "Monthly revenue"
+    },
+    "EMPTY": {}
+  },
+  "SETTINGS": {
+    "PROFILE": {
+      "SAVE": "Save changes",
+      "CANCEL": "Cancel",
+      "TIMEZONE": "Timezone"
+    },
+    "SECURITY": {}
+  },
+  "BILLING": {
+    "PLAN": {
+      "CURRENT": "Current plan",
+      "PRO": "Pro plan"
+    }
+  },
+  "NOTIFICATIONS": {
+    "EMAIL": {
+      "MONTHLY": "Monthly report"
+    },
+    "PUSH": {
+      "ENABLED": "Enable push notifications"
+    }
+  }
+}

@@ -22,6 +22,8 @@ export function OpenFileDialog(arg1:string,arg2:string,arg3:string):Promise<stri
 
 export function ParseDiffFile(arg1:string):Promise<Array<main.DiffChange>>;
 
+export function ParseDiffToStandardChanges(arg1:string):Promise<Array<main.StandardizedDiffChange>>;
+
 export function ReadJsonFile(arg1:string):Promise<Record<string, any>>;
 
 export function ReadTextFile(arg1:string):Promise<string>;

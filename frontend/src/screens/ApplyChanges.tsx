@@ -1,12 +1,12 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { FileSpreadsheet, FolderOpen, AlertCircle, CheckCircle, ChevronRight, Save, ArrowRight, X, SkipForward } from "lucide-react"
-import { ParseDiffFile, ReadJsonFile, SaveAppliedChanges, CheckAlreadyApplied, OpenFileDialog, ReadTextFile, GetAppliedChangesAsJson, SaveFileDialog, SaveTextFile } from "../../wailsjs/go/main/App"
-import { DiffViewer } from "@/components/DiffViewer"
+import { FileSpreadsheet, FolderOpen, AlertCircle, CheckCircle, Save, X, ArrowRight } from "lucide-react"
+import { CheckAlreadyApplied, GetAppliedChangesAsJson, OpenFileDialog, ReadTextFile, SaveAppliedChanges, SaveFileDialog, SaveTextFile } from "../../wailsjs/go/main/App"
+import { main } from "../../wailsjs/go/models"
 
 interface DiffChange {
   type: string
@@ -16,11 +16,13 @@ interface DiffChange {
   line: number
 }
 
+type Step = 'select' | 'review' | 'complete'
+
 export function ApplyChanges() {
   const { t } = useTranslation()
   const [targetFile, setTargetFile] = useState('')
-  const [diffFile, setDiffFile] = useState('')
-  const [diffContent, setDiffContent] = useState('')
+  const [changesFile, setChangesFile] = useState('')
+  const [standardizedChanges, setStandardizedChanges] = useState<main.StandardizedDiffChange[]>([])
   const [changes, setChanges] = useState<DiffChange[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [appliedChanges, setAppliedChanges] = useState<DiffChange[]>([])
@@ -30,7 +32,76 @@ export function ApplyChanges() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
-  const [step, setStep] = useState<'select' | 'review' | 'complete'>('select')
+  const [step, setStep] = useState<Step>('select')
+
+  const getActionLabel = (action: string) => {
+    switch (action) {
+      case 'add':
+        return { label: t('applyChanges.add'), color: 'text-green-700 bg-green-100' }
+      case 'change':
+      case 'modify':
+        return { label: t('applyChanges.modify'), color: 'text-amber-700 bg-amber-100' }
+      case 'delete':
+        return { label: t('applyChanges.delete'), color: 'text-red-700 bg-red-100' }
+      default:
+        return { label: action, color: 'text-slate-700 bg-slate-100' }
+    }
+  }
+
+  const getActionCounts = (items: main.StandardizedDiffChange[]) => {
+    return items.reduce(
+      (acc, item) => {
+        if (item.action === 'add') acc.add += 1
+        if (item.action === 'change') acc.change += 1
+        if (item.action === 'delete') acc.delete += 1
+        return acc
+      },
+      { add: 0, change: 0, delete: 0 }
+    )
+  }
+
+  const convertToLegacyChanges = (items: main.StandardizedDiffChange[]): DiffChange[] => {
+    return items
+      .map((item) => {
+        const mapped: DiffChange = {
+          type: '',
+          key: item.path,
+          oldValue: item.oldValue || '',
+          newValue: item.newValue || '',
+          line: item.source?.line || 0,
+        }
+
+        if (item.action === 'add') {
+          mapped.type = 'add'
+        } else if (item.action === 'change') {
+          mapped.type = 'modify'
+        } else if (item.action === 'delete') {
+          mapped.type = 'delete'
+        }
+
+        return mapped
+      })
+      .filter((change) => change.type !== '')
+  }
+
+  const parseStandardizedChangeFile = (content: string): main.StandardizedDiffChange[] => {
+    const raw = JSON.parse(content)
+    if (!Array.isArray(raw)) {
+      throw new Error(t('applyChanges.invalidChangesFile'))
+    }
+
+    return raw.map((item, index) => {
+      if (!item || typeof item !== 'object') {
+        throw new Error(t('applyChanges.invalidChangeAt', { index: index + 1 }))
+      }
+
+      if (!item.action || !item.path) {
+        throw new Error(t('applyChanges.invalidChangeAt', { index: index + 1 }))
+      }
+
+      return main.StandardizedDiffChange.createFrom(item)
+    })
+  }
 
   const handleSelectTargetFile = async () => {
     try {
@@ -38,49 +109,46 @@ export function ApplyChanges() {
       if (filePath) {
         setTargetFile(filePath)
       }
-    } catch (err) {
-      setError('Failed to select file')
+    } catch {
+      setError(t('applyChanges.selectFileError'))
     }
   }
 
-  const handleSelectDiffFile = async () => {
+  const handleSelectChangesFile = async () => {
     try {
-      const filePath = await OpenFileDialog('Select Diff File', 'Diff/Patch Files', '*.patch;*.diff;*.txt')
+      const filePath = await OpenFileDialog('Select Standardized Changes File', 'JSON Files', '*.json')
       if (filePath) {
-        setDiffFile(filePath)
-        const content = await ReadTextFile(filePath)
-        setDiffContent(content)
+        setChangesFile(filePath)
       }
-    } catch (err) {
-      setError('Failed to select file')
+    } catch {
+      setError(t('applyChanges.selectFileError'))
     }
   }
 
-  const handleLoadDiff = async () => {
-    if (!targetFile || !diffFile) {
+  const handleLoadChanges = async () => {
+    if (!targetFile || !changesFile) {
       setError(t('errors.fillAllFields'))
       return
     }
 
     setLoading(true)
     setError('')
-
-    if (!diffContent) {
-      setError('Diff file is empty or not loaded')
-      setLoading(false)
-      return
-    }
+    setSuccess('')
 
     try {
-      const parsedChanges = await ParseDiffFile(diffContent)
-      if (!parsedChanges || parsedChanges.length === 0) {
-        setError('No changes found in diff file')
+      const content = await ReadTextFile(changesFile)
+      const parsedStandardized = parseStandardizedChangeFile(content)
+      if (parsedStandardized.length === 0) {
+        setError(t('applyChanges.noChangesFound'))
         return
       }
 
-      const alreadyAppliedResult = await CheckAlreadyApplied(targetFile, parsedChanges)
+      const legacyChanges = convertToLegacyChanges(parsedStandardized)
+      const alreadyAppliedResult = await CheckAlreadyApplied(targetFile, legacyChanges)
+
+      setStandardizedChanges(parsedStandardized)
+      setChanges(legacyChanges)
       setAlreadyApplied(alreadyAppliedResult)
-      setChanges(parsedChanges)
       setCurrentIndex(0)
       setAppliedChanges([])
       setRejectedChanges([])
@@ -88,28 +156,10 @@ export function ApplyChanges() {
       setStep('review')
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err)
-      setError('Error parsing diff: ' + errorMessage)
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
-  }
-
-  const handleApply = () => {
-    const currentChange = changes[currentIndex]
-    setAppliedChanges([...appliedChanges, currentChange])
-    moveToNext()
-  }
-
-  const handleApplyWithOverride = () => {
-    const currentChange = changes[currentIndex]
-    setAppliedChanges([...appliedChanges, currentChange])
-    moveToNext()
-  }
-
-  const handleReject = () => {
-    const currentChange = changes[currentIndex]
-    setRejectedChanges([...rejectedChanges, currentChange])
-    moveToNext()
   }
 
   const moveToNext = () => {
@@ -120,12 +170,30 @@ export function ApplyChanges() {
     }
   }
 
+  const handleApply = () => {
+    setAppliedChanges([...appliedChanges, changes[currentIndex]])
+    moveToNext()
+  }
+
+  const handleReject = () => {
+    setRejectedChanges([...rejectedChanges, changes[currentIndex]])
+    moveToNext()
+  }
+
+  const handleOverrideChange = (value: string) => {
+    const currentChange = changes[currentIndex]
+    setOverrides({
+      ...overrides,
+      [currentChange.key]: value,
+    })
+  }
+
   const handleDownload = async () => {
     setLoading(true)
     setError('')
 
     if (appliedChanges.length === 0) {
-      setError('No changes applied')
+      setError(t('applyChanges.noAppliedChanges'))
       setLoading(false)
       return
     }
@@ -133,7 +201,7 @@ export function ApplyChanges() {
     try {
       const defaultName = targetFile.split('/').pop()?.replace('.json', '_translated.json') || 'translated.json'
       const savePath = await SaveFileDialog('Save translated file', defaultName)
-      
+
       if (!savePath) {
         setLoading(false)
         return
@@ -141,17 +209,14 @@ export function ApplyChanges() {
 
       const jsonContent = await GetAppliedChangesAsJson(targetFile, appliedChanges, overrides)
       if (!jsonContent) {
-        setError('No content returned')
-        alert('No content returned')
+        setError(t('applyChanges.emptyOutputError'))
         return
       }
 
       await SaveTextFile(savePath, jsonContent)
-      alert('File saved to: ' + savePath)
+      setSuccess(t('applyChanges.downloadSuccess'))
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err)
-      console.error('Download error:', errorMessage)
-      alert('Error: ' + errorMessage)
       setError(errorMessage)
     } finally {
       setLoading(false)
@@ -176,8 +241,8 @@ export function ApplyChanges() {
 
   const handleReset = () => {
     setTargetFile('')
-    setDiffFile('')
-    setDiffContent('')
+    setChangesFile('')
+    setStandardizedChanges([])
     setChanges([])
     setCurrentIndex(0)
     setAppliedChanges([])
@@ -189,63 +254,53 @@ export function ApplyChanges() {
     setStep('select')
   }
 
-  const handleOverrideChange = (value: string) => {
-    const currentChange = changes[currentIndex]
-    setOverrides({
-      ...overrides,
-      [currentChange.key]: value
-    })
-  }
-
-  const getChangeTypeLabel = (type: string) => {
-    switch (type) {
-      case 'add': return { label: t('applyChanges.add'), color: 'text-green-600' }
-      case 'modify': return { label: t('applyChanges.modify'), color: 'text-yellow-600' }
-      case 'delete': return { label: t('applyChanges.delete'), color: 'text-red-600' }
-      default: return { label: type, color: 'text-gray-600' }
-    }
-  }
-
   if (step === 'select') {
     return (
-      <div className="container mx-auto py-8 max-w-2xl">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileSpreadsheet className="h-6 w-6" />
+      <div className="container mx-auto py-10 max-w-4xl px-4">
+        <Card className="shadow-sm border-2">
+          <CardHeader className="space-y-3">
+            <CardTitle className="flex items-center gap-3 text-2xl">
+              <FileSpreadsheet className="h-7 w-7" />
               {t('applyChanges.title')}
             </CardTitle>
-            <CardDescription>
-              {t('applyChanges.description')}
+            <CardDescription className="text-base leading-6">
+              {t('applyChanges.descriptionStandardized')}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>{t('applyChanges.targetFile')}</Label>
-              <div className="flex gap-2">
-                <Input 
-                  value={targetFile} 
-                  placeholder={t('applyChanges.selectJsonFile')} 
-                  readOnly 
-                  className="flex-1"
+          <CardContent className="space-y-6">
+            <div className="rounded-lg border bg-muted/40 p-5 space-y-2 text-sm">
+              <p className="font-semibold text-base">{t('applyChanges.stepsTitle')}</p>
+              <p>{t('applyChanges.step1')}</p>
+              <p>{t('applyChanges.step2')}</p>
+              <p>{t('applyChanges.step3')}</p>
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-base">{t('applyChanges.targetFile')}</Label>
+              <div className="flex gap-3">
+                <Input
+                  value={targetFile}
+                  placeholder={t('applyChanges.selectJsonFile')}
+                  readOnly
+                  className="flex-1 h-12 text-base"
                 />
-                <Button variant="outline" onClick={handleSelectTargetFile}>
+                <Button variant="outline" onClick={handleSelectTargetFile} className="h-12 px-5 text-base">
                   <FolderOpen className="h-4 w-4 mr-2" />
                   {t('createDiff.browse')}
                 </Button>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>{t('applyChanges.diffFile')}</Label>
-              <div className="flex gap-2">
-                <Input 
-                  value={diffFile} 
-                  placeholder={t('applyChanges.selectDiffFile')} 
-                  readOnly 
-                  className="flex-1"
+            <div className="space-y-3">
+              <Label className="text-base">{t('applyChanges.changesFile')}</Label>
+              <div className="flex gap-3">
+                <Input
+                  value={changesFile}
+                  placeholder={t('applyChanges.selectChangesFile')}
+                  readOnly
+                  className="flex-1 h-12 text-base"
                 />
-                <Button variant="outline" onClick={handleSelectDiffFile}>
+                <Button variant="outline" onClick={handleSelectChangesFile} className="h-12 px-5 text-base">
                   <FolderOpen className="h-4 w-4 mr-2" />
                   {t('createDiff.browse')}
                 </Button>
@@ -253,16 +308,16 @@ export function ApplyChanges() {
             </div>
 
             {error && (
-              <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 text-destructive">
-                <AlertCircle className="h-4 w-4" />
-                <span className="text-sm">{error}</span>
+              <div className="flex items-start gap-2 p-4 rounded-md bg-destructive/10 text-destructive">
+                <AlertCircle className="h-5 w-5 mt-0.5" />
+                <span className="text-base">{error}</span>
               </div>
             )}
 
-            <Button 
-              className="w-full mt-6" 
-              onClick={handleLoadDiff}
-              disabled={loading || !targetFile || !diffFile}
+            <Button
+              className="w-full h-12 mt-3 text-base"
+              onClick={handleLoadChanges}
+              disabled={loading || !targetFile || !changesFile}
             >
               {loading ? t('applyChanges.loading') : t('applyChanges.loadChanges')}
             </Button>
@@ -274,139 +329,113 @@ export function ApplyChanges() {
 
   if (step === 'review') {
     const currentChange = changes[currentIndex]
-    const changeType = getChangeTypeLabel(currentChange.type)
+    const currentStandardized = standardizedChanges[currentIndex]
+    const actionStyle = getActionLabel(currentStandardized?.action || currentChange.type)
     const isAlreadyApplied = alreadyApplied[currentIndex]
-
-    const extractDiffSection = () => {
-      if (!diffContent) return ''
-      const lines = diffContent.split('\n')
-      const relevantLines: string[] = []
-      let foundKey = false
-      let linesAdded = 0
-      
-      for (const line of lines) {
-        const keyPart = currentChange.key.split('.').pop() || ''
-        if (line.includes(keyPart)) {
-          foundKey = true
-        }
-        if (foundKey) {
-          relevantLines.push(line)
-          linesAdded++
-          if (linesAdded >= 6) break
-        }
-      }
-      return relevantLines.join('\n')
-    }
-
-    const diffSection = extractDiffSection()
+    const actionCounts = getActionCounts(standardizedChanges)
 
     return (
-      <div className="container mx-auto py-8 max-w-3xl">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileSpreadsheet className="h-6 w-6" />
+      <div className="container mx-auto py-10 max-w-4xl px-4">
+        <Card className="shadow-sm border-2">
+          <CardHeader className="space-y-3">
+            <CardTitle className="flex items-center gap-3 text-2xl">
+              <FileSpreadsheet className="h-7 w-7" />
               {t('applyChanges.reviewChanges')}
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-base">
               {t('applyChanges.changeNumber', { current: currentIndex + 1, total: changes.length })}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <details className="rounded-md border">
-              <summary className="px-4 py-2 cursor-pointer bg-muted font-medium text-sm">
-                {t('applyChanges.fullDiff')} ({changes.length} {t('applyChanges.changes')})
-              </summary>
-              <div className="p-3">
-                <DiffViewer content={diffContent} maxHeight="max-h-48" />
-              </div>
-            </details>
-
-            {diffSection && (
-              <div className="space-y-2">
-                <Label className="text-xs uppercase text-muted-foreground">{t('applyChanges.rawDiff')}</Label>
-                <DiffViewer content={diffSection} maxHeight="max-h-32" />
-              </div>
-            )}
-
-            <div className="p-4 rounded-lg bg-muted space-y-3">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">Key:</span>
-                <code className="bg-background px-2 py-1 rounded text-sm">{currentChange.key}</code>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">Type:</span>
-                <span className={`text-sm font-medium ${changeType.color}`}>
-                  {changeType.label}
+            <div className="rounded-lg border bg-muted/40 p-4">
+              <p className="text-sm text-muted-foreground mb-2">{t('applyChanges.changesSummaryTitle')}</p>
+              <div className="flex flex-wrap gap-2 text-sm">
+                <span className="px-3 py-1 rounded-full bg-green-100 text-green-700 font-medium">
+                  {t('applyChanges.add')}: {actionCounts.add}
                 </span>
-                {isAlreadyApplied && (
-                  <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded">
-                    {t('applyChanges.alreadyApplied')}
-                  </span>
-                )}
+                <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-700 font-medium">
+                  {t('applyChanges.modify')}: {actionCounts.change}
+                </span>
+                <span className="px-3 py-1 rounded-full bg-red-100 text-red-700 font-medium">
+                  {t('applyChanges.delete')}: {actionCounts.delete}
+                </span>
               </div>
+            </div>
+
+            <div className="rounded-lg border p-5 bg-muted/40 space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm text-muted-foreground">{t('applyChanges.translationKey')}</p>
+                  <p className="text-lg font-semibold break-all">{currentChange.key}</p>
+                </div>
+                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${actionStyle.color}`}>
+                  {actionStyle.label}
+                </span>
+              </div>
+
+              {currentStandardized?.source?.file && (
+                <p className="text-sm text-muted-foreground">
+                  {t('applyChanges.sourceFile')}: {currentStandardized.source.file}
+                </p>
+              )}
 
               {currentChange.type !== 'add' && (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">{t('applyChanges.currentValue')}:</span>
-                  <code className="bg-background px-2 py-1 rounded text-sm text-red-500">
+                <div>
+                  <p className="text-sm font-medium mb-1">{t('applyChanges.currentValue')}</p>
+                  <div className="rounded-md border bg-background p-3 text-base text-red-600 break-words">
                     {currentChange.oldValue || '(empty)'}
-                  </code>
+                  </div>
                 </div>
               )}
 
-              {(currentChange.type === 'add' || currentChange.type === 'modify') && (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">{t('applyChanges.newValue')}:</span>
-                  <code className="bg-background px-2 py-1 rounded text-sm text-green-500">
-                    {currentChange.newValue}
-                  </code>
+              {currentChange.type !== 'delete' && (
+                <div>
+                  <p className="text-sm font-medium mb-1">{t('applyChanges.newValue')}</p>
+                  <div className="rounded-md border bg-background p-3 text-base text-green-700 break-words">
+                    {currentChange.newValue || '(empty)'}
+                  </div>
+                </div>
+              )}
+
+              {(currentChange.type === 'add' || currentChange.type === 'modify') && !isAlreadyApplied && (
+                <div className="space-y-2">
+                  <Label className="text-base">{t('applyChanges.overrideValue')} ({t('applyChanges.optional')})</Label>
+                  <Input
+                    placeholder={currentChange.newValue}
+                    value={overrides[currentChange.key] || ''}
+                    onChange={(e) => handleOverrideChange(e.target.value)}
+                    className="h-12 text-base"
+                  />
                 </div>
               )}
             </div>
 
-            {(currentChange.type === 'add' || currentChange.type === 'modify') && !isAlreadyApplied && (
-              <div className="space-y-2">
-                <Label>{t('applyChanges.overrideValue')} ({t('applyChanges.optional')})</Label>
-                <Input
-                  placeholder={currentChange.newValue}
-                  value={overrides[currentChange.key] || ''}
-                  onChange={(e) => handleOverrideChange(e.target.value)}
-                />
+            {isAlreadyApplied && (
+              <div className="rounded-md border border-blue-200 bg-blue-50 p-4 text-blue-700 text-base">
+                {t('applyChanges.alreadyAppliedMessage')}
               </div>
             )}
 
             {isAlreadyApplied ? (
-              <Button 
-                className="w-full"
-                onClick={moveToNext}
-              >
-                <ChevronRight className="h-4 w-4 mr-2" />
+              <Button className="w-full h-12 text-base" onClick={moveToNext}>
+                <ArrowRight className="h-4 w-4 mr-2" />
                 {t('applyChanges.nextChange')}
               </Button>
             ) : (
-              <div className="flex gap-4">
-                <Button 
-                  variant="outline" 
-                  className="flex-1"
-                  onClick={handleReject}
-                >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Button variant="outline" className="h-12 text-base" onClick={handleReject}>
                   <X className="h-4 w-4 mr-2" />
                   {t('applyChanges.reject')}
                 </Button>
-                <Button 
-                  className="flex-1"
-                  onClick={currentChange.type === 'delete' ? handleApply : handleApplyWithOverride}
-                >
+                <Button className="h-12 text-base" onClick={handleApply}>
                   <CheckCircle className="h-4 w-4 mr-2" />
                   {t('applyChanges.apply')}
                 </Button>
               </div>
             )}
 
-            <div className="text-sm text-muted-foreground text-center">
-              {appliedChanges.length} {t('applyChanges.applied')} | {rejectedChanges.length} {t('applyChanges.rejected')} | {alreadyApplied.filter(a => a).length} {t('applyChanges.alreadyApplied')}
+            <div className="rounded-md border p-3 text-sm text-muted-foreground text-center">
+              {appliedChanges.length} {t('applyChanges.applied')} | {rejectedChanges.length} {t('applyChanges.rejected')} | {alreadyApplied.filter(Boolean).length} {t('applyChanges.alreadyApplied')}
             </div>
           </CardContent>
         </Card>
@@ -416,26 +445,26 @@ export function ApplyChanges() {
 
   if (step === 'complete') {
     return (
-      <div className="container mx-auto py-8 max-w-2xl">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-6 w-6 text-green-500" />
+      <div className="container mx-auto py-10 max-w-4xl px-4">
+        <Card className="shadow-sm border-2">
+          <CardHeader className="space-y-3">
+            <CardTitle className="flex items-center gap-3 text-2xl">
+              <CheckCircle className="h-7 w-7 text-green-600" />
               {t('applyChanges.complete')}
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-base">
               {t('applyChanges.summary', { applied: appliedChanges.length, rejected: rejectedChanges.length })}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-5">
             {appliedChanges.length > 0 && (
-              <div className="space-y-2">
-                <Label>{t('applyChanges.willApply')}</Label>
-                <div className="space-y-1">
+              <div className="space-y-3">
+                <Label className="text-base">{t('applyChanges.willApply')}</Label>
+                <div className="space-y-2">
                   {appliedChanges.map((change, i) => (
-                    <div key={i} className="flex items-center gap-2 text-sm">
-                      <span className="text-green-500">+</span>
-                      <code className="bg-muted px-2 py-1 rounded">{change.key}</code>
+                    <div key={i} className="flex items-start gap-2 text-sm bg-muted/40 rounded-md p-2">
+                      <span className="text-green-600 mt-0.5">+</span>
+                      <code className="break-all">{change.key}</code>
                       {overrides[change.key] && (
                         <span className="text-muted-foreground">→ {overrides[change.key]}</span>
                       )}
@@ -446,42 +475,45 @@ export function ApplyChanges() {
             )}
 
             {rejectedChanges.length > 0 && (
-              <div className="space-y-2">
-                <Label>{t('applyChanges.willReject')}</Label>
-                <div className="space-y-1">
+              <div className="space-y-3">
+                <Label className="text-base">{t('applyChanges.willReject')}</Label>
+                <div className="space-y-2">
                   {rejectedChanges.map((change, i) => (
-                    <div key={i} className="flex items-center gap-2 text-sm">
-                      <span className="text-red-500">-</span>
-                      <code className="bg-muted px-2 py-1 rounded">{change.key}</code>
+                    <div key={i} className="flex items-start gap-2 text-sm bg-muted/40 rounded-md p-2">
+                      <span className="text-red-600 mt-0.5">-</span>
+                      <code className="break-all">{change.key}</code>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {success && (
-              <div className="flex items-center gap-2 p-3 rounded-md bg-green-50 text-green-700 border border-green-200">
-                <CheckCircle className="h-4 w-4" />
-                <span className="text-sm">{success}</span>
+            {error && (
+              <div className="flex items-start gap-2 p-4 rounded-md bg-destructive/10 text-destructive">
+                <AlertCircle className="h-5 w-5 mt-0.5" />
+                <span className="text-base">{error}</span>
               </div>
             )}
 
-            <div className="flex flex-col gap-3 pt-4">
-              <div className="flex gap-4">
-                <Button variant="outline" className="flex-1" onClick={handleReset}>
-                  {t('applyChanges.startOver')}
-                </Button>
+            {success && (
+              <div className="flex items-start gap-2 p-4 rounded-md bg-green-50 text-green-700 border border-green-200">
+                <CheckCircle className="h-5 w-5 mt-0.5" />
+                <span className="text-base">{success}</span>
               </div>
-              <div className="flex gap-4">
-                <Button className="flex-1" onClick={handleDownload} disabled={loading}>
-                  <Save className="h-4 w-4 mr-2" />
-                  {t('applyChanges.downloadFile')}
-                </Button>
-                <Button variant="secondary" className="flex-1" onClick={handleOverwrite} disabled={loading}>
-                  <Save className="h-4 w-4 mr-2" />
-                  {t('applyChanges.overwriteFile')}
-                </Button>
-              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+              <Button variant="outline" className="h-12 text-base" onClick={handleReset}>
+                {t('applyChanges.startOver')}
+              </Button>
+              <Button className="h-12 text-base" onClick={handleDownload} disabled={loading}>
+                <Save className="h-4 w-4 mr-2" />
+                {t('applyChanges.downloadFile')}
+              </Button>
+              <Button variant="secondary" className="h-12 text-base" onClick={handleOverwrite} disabled={loading}>
+                <Save className="h-4 w-4 mr-2" />
+                {t('applyChanges.overwriteFile')}
+              </Button>
             </div>
           </CardContent>
         </Card>

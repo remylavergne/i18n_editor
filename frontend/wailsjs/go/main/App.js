@@ -42,6 +42,10 @@ export function ParseDiffFile(arg1) {
   return window['go']['main']['App']['ParseDiffFile'](arg1);
 }
 
+export function ParseDiffToStandardChanges(arg1) {
+  return window['go']['main']['App']['ParseDiffToStandardChanges'](arg1);
+}
+
 export function ReadJsonFile(arg1) {
   return window['go']['main']['App']['ReadJsonFile'](arg1);
 }

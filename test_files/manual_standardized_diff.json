@@ -1,0 +1,224 @@
+[
+  {
+    "action": "change",
+    "path": "HOME.HERO.TITLE",
+    "segments": ["HOME", "HERO", "TITLE"],
+    "key": "TITLE",
+    "oldValue": "Welcome to the portal",
+    "newValue": "Welcome to your control center",
+    "source": {
+      "file": "manual_base.json",
+      "hunk": "@@ HOME.HERO @@",
+      "line": 12
+    }
+  },
+  {
+    "action": "change",
+    "path": "HOME.HERO.SUBTITLE",
+    "segments": ["HOME", "HERO", "SUBTITLE"],
+    "key": "SUBTITLE",
+    "oldValue": "Manage your workspace in one place",
+    "newValue": "Run everything from one unified workspace",
+    "source": {
+      "file": "manual_base.json",
+      "hunk": "@@ HOME.HERO @@",
+      "line": 13
+    }
+  },
+  {
+    "action": "change",
+    "path": "AUTH.LOGIN.TITLE",
+    "segments": ["AUTH", "LOGIN", "TITLE"],
+    "key": "TITLE",
+    "oldValue": "Sign in",
+    "newValue": "Log in",
+    "source": {
+      "file": "manual_base.json",
+      "hunk": "@@ AUTH.LOGIN @@",
+      "line": 22
+    }
+  },
+  {
+    "action": "change",
+    "path": "AUTH.LOGIN.SUBMIT",
+    "segments": ["AUTH", "LOGIN", "SUBMIT"],
+    "key": "SUBMIT",
+    "oldValue": "Continue",
+    "newValue": "Sign in",
+    "source": {
+      "file": "manual_base.json",
+      "hunk": "@@ AUTH.LOGIN @@",
+      "line": 23
+    }
+  },
+  {
+    "action": "change",
+    "path": "DASHBOARD.STATS.USERS",
+    "segments": ["DASHBOARD", "STATS", "USERS"],
+    "key": "USERS",
+    "oldValue": "Active users",
+    "newValue": "Team members",
+    "source": {
+      "file": "manual_base.json",
+      "hunk": "@@ DASHBOARD.STATS @@",
+      "line": 31
+    }
+  },
+  {
+    "action": "change",
+    "path": "SETTINGS.PROFILE.SAVE",
+    "segments": ["SETTINGS", "PROFILE", "SAVE"],
+    "key": "SAVE",
+    "oldValue": "Save profile",
+    "newValue": "Save changes",
+    "source": {
+      "file": "manual_base.json",
+      "hunk": "@@ SETTINGS.PROFILE @@",
+      "line": 40
+    }
+  },
+  {
+    "action": "delete",
+    "path": "HOME.HERO.CTA_SECONDARY",
+    "segments": ["HOME", "HERO", "CTA_SECONDARY"],
+    "key": "CTA_SECONDARY",
+    "oldValue": "Learn more",
+    "source": {
+      "file": "manual_base.json",
+      "hunk": "@@ HOME.HERO @@",
+      "line": 15
+    }
+  },
+  {
+    "action": "delete",
+    "path": "AUTH.LOGIN.HELP",
+    "segments": ["AUTH", "LOGIN", "HELP"],
+    "key": "HELP",
+    "oldValue": "Need help signing in?",
+    "source": {
+      "file": "manual_base.json",
+      "hunk": "@@ AUTH.LOGIN @@",
+      "line": 24
+    }
+  },
+  {
+    "action": "delete",
+    "path": "DASHBOARD.EMPTY.MESSAGE",
+    "segments": ["DASHBOARD", "EMPTY", "MESSAGE"],
+    "key": "MESSAGE",
+    "oldValue": "No data available",
+    "source": {
+      "file": "manual_base.json",
+      "hunk": "@@ DASHBOARD.EMPTY @@",
+      "line": 35
+    }
+  },
+  {
+    "action": "delete",
+    "path": "SETTINGS.SECURITY.TWO_FACTOR",
+    "segments": ["SETTINGS", "SECURITY", "TWO_FACTOR"],
+    "key": "TWO_FACTOR",
+    "oldValue": "Two-factor authentication",
+    "source": {
+      "file": "manual_base.json",
+      "hunk": "@@ SETTINGS.SECURITY @@",
+      "line": 45
+    }
+  },
+  {
+    "action": "delete",
+    "path": "BILLING.PLAN.LEGACY",
+    "segments": ["BILLING", "PLAN", "LEGACY"],
+    "key": "LEGACY",
+    "oldValue": "Legacy plan",
+    "source": {
+      "file": "manual_base.json",
+      "hunk": "@@ BILLING.PLAN @@",
+      "line": 52
+    }
+  },
+  {
+    "action": "delete",
+    "path": "NOTIFICATIONS.EMAIL.WEEKLY",
+    "segments": ["NOTIFICATIONS", "EMAIL", "WEEKLY"],
+    "key": "WEEKLY",
+    "oldValue": "Weekly summary",
+    "source": {
+      "file": "manual_base.json",
+      "hunk": "@@ NOTIFICATIONS.EMAIL @@",
+      "line": 58
+    }
+  },
+  {
+    "action": "add",
+    "path": "HOME.HERO.BADGE",
+    "segments": ["HOME", "HERO", "BADGE"],
+    "key": "BADGE",
+    "newValue": "New",
+    "source": {
+      "file": "manual_base.json",
+      "hunk": "@@ HOME.HERO @@",
+      "line": 16
+    }
+  },
+  {
+    "action": "add",
+    "path": "AUTH.LOGIN.SSO",
+    "segments": ["AUTH", "LOGIN", "SSO"],
+    "key": "SSO",
+    "newValue": "Continue with SSO",
+    "source": {
+      "file": "manual_base.json",
+      "hunk": "@@ AUTH.LOGIN @@",
+      "line": 25
+    }
+  },
+  {
+    "action": "add",
+    "path": "DASHBOARD.STATS.REVENUE",
+    "segments": ["DASHBOARD", "STATS", "REVENUE"],
+    "key": "REVENUE",
+    "newValue": "Monthly revenue",
+    "source": {
+      "file": "manual_base.json",
+      "hunk": "@@ DASHBOARD.STATS @@",
+      "line": 32
+    }
+  },
+  {
+    "action": "add",
+    "path": "SETTINGS.PROFILE.TIMEZONE",
+    "segments": ["SETTINGS", "PROFILE", "TIMEZONE"],
+    "key": "TIMEZONE",
+    "newValue": "Timezone",
+    "source": {
+      "file": "manual_base.json",
+      "hunk": "@@ SETTINGS.PROFILE @@",
+      "line": 41
+    }
+  },
+  {
+    "action": "add",
+    "path": "BILLING.PLAN.PRO",
+    "segments": ["BILLING", "PLAN", "PRO"],
+    "key": "PRO",
+    "newValue": "Pro plan",
+    "source": {
+      "file": "manual_base.json",
+      "hunk": "@@ BILLING.PLAN @@",
+      "line": 53
+    }
+  },
+  {
+    "action": "add",
+    "path": "NOTIFICATIONS.PUSH.ENABLED",
+    "segments": ["NOTIFICATIONS", "PUSH", "ENABLED"],
+    "key": "ENABLED",
+    "newValue": "Enable push notifications",
+    "source": {
+      "file": "manual_base.json",
+      "hunk": "@@ NOTIFICATIONS.PUSH @@",
+      "line": 60
+    }
+  }
+]

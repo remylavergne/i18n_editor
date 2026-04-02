@@ -1,0 +1,47 @@
+{
+  "HOME": {
+    "HERO": {
+      "TITLE": "Welcome to the portal",
+      "SUBTITLE": "Manage your workspace in one place",
+      "CTA_PRIMARY": "Get started",
+      "CTA_SECONDARY": "Learn more"
+    }
+  },
+  "AUTH": {
+    "LOGIN": {
+      "TITLE": "Sign in",
+      "SUBMIT": "Continue",
+      "HELP": "Need help signing in?"
+    }
+  },
+  "DASHBOARD": {
+    "STATS": {
+      "USERS": "Active users",
+      "PROJECTS": "Projects"
+    },
+    "EMPTY": {
+      "MESSAGE": "No data available"
+    }
+  },
+  "SETTINGS": {
+    "PROFILE": {
+      "SAVE": "Save profile",
+      "CANCEL": "Cancel"
+    },
+    "SECURITY": {
+      "TWO_FACTOR": "Two-factor authentication"
+    }
+  },
+  "BILLING": {
+    "PLAN": {
+      "CURRENT": "Current plan",
+      "LEGACY": "Legacy plan"
+    }
+  },
+  "NOTIFICATIONS": {
+    "EMAIL": {
+      "WEEKLY": "Weekly summary",
+      "MONTHLY": "Monthly report"
+    }
+  }
+}
