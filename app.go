@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -165,83 +166,291 @@ type DiffChange struct {
 	Line     int    `json:"line"`     // Line number in diff
 }
 
-func (a *App) ParseDiffFile(diffContent string) ([]DiffChange, error) {
+type StandardizedDiffAction string
+
+const (
+	DiffActionAdd    StandardizedDiffAction = "add"
+	DiffActionChange StandardizedDiffAction = "change"
+	DiffActionDelete StandardizedDiffAction = "delete"
+)
+
+type StandardizedDiffChange struct {
+	Action   StandardizedDiffAction `json:"action"`
+	Path     string                 `json:"path"`
+	Segments []string               `json:"segments,omitempty"`
+	Key      string                 `json:"key"`
+	OldValue string                 `json:"oldValue,omitempty"`
+	NewValue string                 `json:"newValue,omitempty"`
+	Source   DiffChangeSource       `json:"source"`
+}
+
+type DiffChangeSource struct {
+	File string `json:"file,omitempty"`
+	Hunk string `json:"hunk,omitempty"`
+	Line int    `json:"line"`
+}
+
+func extractLeafKey(path string) string {
+	parts := splitPath(path)
+	if len(parts) == 0 {
+		return path
+	}
+	return parts[len(parts)-1]
+}
+
+func splitPath(path string) []string {
+	if path == "" {
+		return nil
+	}
+	return strings.Split(path, ".")
+}
+
+func parseDiffValue(raw string) string {
+	raw = strings.TrimSpace(raw)
+	raw = strings.TrimSuffix(raw, ",")
+
+	var s string
+	if err := json.Unmarshal([]byte(raw), &s); err == nil {
+		return s
+	}
+
+	var v interface{}
+	if err := json.Unmarshal([]byte(raw), &v); err == nil {
+		if v == nil {
+			return ""
+		}
+		return fmt.Sprint(v)
+	}
+
+	return strings.Trim(raw, "\"")
+}
+
+type diffSideEntry struct {
+	Path  string
+	Value string
+	Line  int
+	File  string
+	Hunk  string
+}
+
+var diffObjectStartRe = regexp.MustCompile(`^\s*"([^"]+)"\s*:\s*{\s*,?\s*$`)
+var diffKeyValueRe = regexp.MustCompile(`^\s*"([^"]+)"\s*:\s*(.+?)\s*,?\s*$`)
+
+func isDiffMetadataLine(line string) bool {
+	return strings.HasPrefix(line, "diff --") ||
+		strings.HasPrefix(line, "index ") ||
+		strings.HasPrefix(line, "@@") ||
+		strings.HasPrefix(line, "+++") ||
+		strings.HasPrefix(line, "---") ||
+		strings.HasPrefix(line, "new file mode") ||
+		strings.HasPrefix(line, "deleted file mode")
+}
+
+func splitDiffPrefix(line string) (prefix byte, content string, ok bool) {
+	if line == "" {
+		return 0, "", false
+	}
+
+	prefix = line[0]
+	if prefix != ' ' && prefix != '+' && prefix != '-' {
+		return 0, "", false
+	}
+
+	return prefix, line[1:], true
+}
+
+func updatePathStackFromLine(content string, pathStack *[]string) {
+	trimmed := strings.TrimSpace(content)
+	if trimmed == "" {
+		return
+	}
+
+	if strings.HasPrefix(trimmed, "}") {
+		if len(*pathStack) > 0 {
+			*pathStack = (*pathStack)[:len(*pathStack)-1]
+		}
+		return
+	}
+
+	if m := diffObjectStartRe.FindStringSubmatch(content); m != nil {
+		*pathStack = append(*pathStack, m[1])
+	}
+}
+
+func extractChangedValueFromLine(content string, pathStack []string) (path string, value string, ok bool) {
+	matches := diffKeyValueRe.FindStringSubmatch(content)
+	if matches == nil {
+		return "", "", false
+	}
+
+	key := matches[1]
+	rawValue := strings.TrimSpace(matches[2])
+	if strings.HasPrefix(rawValue, "{") {
+		return "", "", false
+	}
+
+	parts := append(append([]string{}, pathStack...), key)
+	return strings.Join(parts, "."), parseDiffValue(rawValue), true
+}
+
+func extractDiffSideEntries(diffContent string, side byte) map[string]diffSideEntry {
+	entries := make(map[string]diffSideEntry)
+	pathStack := make([]string, 0)
 	lines := strings.Split(diffContent, "\n")
-	var changes []DiffChange
+	currentFile := ""
+	currentHunk := ""
 
-	reKey := regexp.MustCompile(`^\+\s*"([^"]+)":\s*"?([^",}]*)"?[,}]?\s*$`)
-	reOldKey := regexp.MustCompile(`^-\s*"([^"]+)":\s*"?([^",}]*)"?[,}]?\s*$`)
+	for idx, rawLine := range lines {
+		line := strings.TrimRight(rawLine, "\r")
 
-	currentLine := 0
-	for i, line := range lines {
-		currentLine = i
-		line = strings.TrimRight(line, "\r")
+		if side == '+' && strings.HasPrefix(line, "+++ ") {
+			currentFile = strings.TrimPrefix(line, "+++ ")
+			currentFile = strings.TrimPrefix(currentFile, "b/")
+			continue
+		}
 
-		if strings.HasPrefix(line, "+") && !strings.HasPrefix(line, "+++") && !strings.HasPrefix(line, "++") {
-			match := reKey.FindStringSubmatch(line)
-			if match != nil && match[1] != "" {
-				changes = append(changes, DiffChange{
-					Type:     "add",
-					Key:      match[1],
-					NewValue: match[2],
-					Line:     currentLine,
-				})
-			}
-		} else if strings.HasPrefix(line, "-") && !strings.HasPrefix(line, "---") && !strings.HasPrefix(line, "diff --") {
-			match := reOldKey.FindStringSubmatch(line)
-			if match != nil && match[1] != "" {
-				changes = append(changes, DiffChange{
-					Type:     "delete",
-					Key:      match[1],
-					OldValue: match[2],
-					Line:     currentLine,
-				})
-			}
+		if side == '-' && strings.HasPrefix(line, "--- ") {
+			currentFile = strings.TrimPrefix(line, "--- ")
+			currentFile = strings.TrimPrefix(currentFile, "a/")
+			continue
+		}
+
+		if strings.HasPrefix(line, "@@") {
+			currentHunk = line
+			continue
+		}
+
+		if isDiffMetadataLine(line) {
+			continue
+		}
+
+		prefix, content, ok := splitDiffPrefix(line)
+		if !ok {
+			continue
+		}
+
+		if prefix != ' ' && prefix != side {
+			continue
+		}
+
+		updatePathStackFromLine(content, &pathStack)
+
+		if prefix != side {
+			continue
+		}
+
+		path, value, valueOK := extractChangedValueFromLine(content, pathStack)
+		if !valueOK {
+			continue
+		}
+
+		entries[path] = diffSideEntry{
+			Path:  path,
+			Value: value,
+			Line:  idx + 1,
+			File:  currentFile,
+			Hunk:  currentHunk,
 		}
 	}
 
-	// Try to find modified lines (lines that are both deleted and added for the same key)
-	if len(changes) > 0 {
-		var finalChanges []DiffChange
-		seen := make(map[string]bool)
+	return entries
+}
 
-		for i := 0; i < len(lines)-1; i++ {
-			line := strings.TrimRight(lines[i], "\r")
-			nextLine := strings.TrimRight(lines[i+1], "\r")
+func (a *App) ParseDiffToStandardChanges(diffContent string) ([]StandardizedDiffChange, error) {
+	oldEntries := extractDiffSideEntries(diffContent, '-')
+	newEntries := extractDiffSideEntries(diffContent, '+')
+	changes := make([]StandardizedDiffChange, 0, len(oldEntries)+len(newEntries))
 
-			oldMatch := reOldKey.FindStringSubmatch(line)
-			newMatch := reKey.FindStringSubmatch(nextLine)
-
-			if oldMatch != nil && newMatch != nil && oldMatch[1] == newMatch[1] && oldMatch[1] != "" {
-				// This is a modification, not add/delete
-				key := oldMatch[1]
-				if !seen[key] {
-					finalChanges = append(finalChanges, DiffChange{
-						Type:     "modify",
-						Key:      key,
-						OldValue: oldMatch[2],
-						NewValue: newMatch[2],
-						Line:     i,
-					})
-					seen[key] = true
-				}
-				i++ // skip the next line since we processed it
-			}
+	for path, oldEntry := range oldEntries {
+		if newEntry, exists := newEntries[path]; exists {
+			changes = append(changes, StandardizedDiffChange{
+				Action:   DiffActionChange,
+				Path:     path,
+				Segments: splitPath(path),
+				Key:      extractLeafKey(path),
+				OldValue: oldEntry.Value,
+				NewValue: newEntry.Value,
+				Source: DiffChangeSource{
+					File: newEntry.File,
+					Hunk: newEntry.Hunk,
+					Line: newEntry.Line,
+				},
+			})
+			continue
 		}
 
-		// Add any changes that weren't part of a modification
-		for _, change := range changes {
-			if !seen[change.Key] {
-				finalChanges = append(finalChanges, change)
-			}
-		}
-
-		changes = finalChanges
+		changes = append(changes, StandardizedDiffChange{
+			Action:   DiffActionDelete,
+			Path:     path,
+			Segments: splitPath(path),
+			Key:      extractLeafKey(path),
+			OldValue: oldEntry.Value,
+			Source: DiffChangeSource{
+				File: oldEntry.File,
+				Hunk: oldEntry.Hunk,
+				Line: oldEntry.Line,
+			},
+		})
 	}
 
-	// Ensure we never return nil
-	if changes == nil {
-		changes = []DiffChange{}
+	for path, newEntry := range newEntries {
+		if _, exists := oldEntries[path]; exists {
+			continue
+		}
+
+		changes = append(changes, StandardizedDiffChange{
+			Action:   DiffActionAdd,
+			Path:     path,
+			Segments: splitPath(path),
+			Key:      extractLeafKey(path),
+			NewValue: newEntry.Value,
+			Source: DiffChangeSource{
+				File: newEntry.File,
+				Hunk: newEntry.Hunk,
+				Line: newEntry.Line,
+			},
+		})
+	}
+
+	sort.Slice(changes, func(i, j int) bool {
+		if changes[i].Source.Line == changes[j].Source.Line {
+			return changes[i].Path < changes[j].Path
+		}
+		return changes[i].Source.Line < changes[j].Source.Line
+	})
+
+	return changes, nil
+}
+
+func (a *App) ParseDiffFile(diffContent string) ([]DiffChange, error) {
+	standardChanges, err := a.ParseDiffToStandardChanges(diffContent)
+	if err != nil {
+		return nil, err
+	}
+
+	changes := make([]DiffChange, 0, len(standardChanges))
+	for _, change := range standardChanges {
+		mapped := DiffChange{
+			Key:  change.Path,
+			Line: change.Source.Line,
+		}
+
+		switch change.Action {
+		case DiffActionAdd:
+			mapped.Type = "add"
+			mapped.NewValue = change.NewValue
+		case DiffActionDelete:
+			mapped.Type = "delete"
+			mapped.OldValue = change.OldValue
+		case DiffActionChange:
+			mapped.Type = "modify"
+			mapped.OldValue = change.OldValue
+			mapped.NewValue = change.NewValue
+		default:
+			continue
+		}
+
+		changes = append(changes, mapped)
 	}
 
 	return changes, nil
