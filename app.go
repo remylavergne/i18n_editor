@@ -224,7 +224,14 @@ type StandardizedDiffChange struct {
 	Key      string                 `json:"key"`
 	OldValue string                 `json:"oldValue,omitempty"`
 	NewValue string                 `json:"newValue,omitempty"`
+	Context  *DiffChangeContext     `json:"context,omitempty"`
 	Source   DiffChangeSource       `json:"source"`
+}
+
+type DiffChangeContext struct {
+	Description   string `json:"description,omitempty"`
+	ScreenURL     string `json:"screenUrl,omitempty"`
+	ComponentName string `json:"componentName,omitempty"`
 }
 
 type DiffChangeSource struct {

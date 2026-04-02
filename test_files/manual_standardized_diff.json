@@ -6,6 +6,11 @@
     "key": "TITLE",
     "oldValue": "Welcome to the portal",
     "newValue": "Welcome to your control center",
+    "context": {
+      "description": "Main hero title visible on the product home page after login.",
+      "screenUrl": "https://app.example.com/home",
+      "componentName": "HomeHeroTitle"
+    },
     "source": {
       "file": "manual_base.json",
       "hunk": "@@ HOME.HERO @@",
@@ -19,6 +24,10 @@
     "key": "SUBTITLE",
     "oldValue": "Manage your workspace in one place",
     "newValue": "Run everything from one unified workspace",
+    "context": {
+      "description": "Supporting copy under the hero title.",
+      "screenUrl": "https://app.example.com/home"
+    },
     "source": {
       "file": "manual_base.json",
       "hunk": "@@ HOME.HERO @@",
@@ -32,6 +41,11 @@
     "key": "TITLE",
     "oldValue": "Sign in",
     "newValue": "Log in",
+    "context": {
+      "description": "Login page heading for all users.",
+      "screenUrl": "https://app.example.com/login",
+      "componentName": "LoginHeader"
+    },
     "source": {
       "file": "manual_base.json",
       "hunk": "@@ AUTH.LOGIN @@",
@@ -45,6 +59,11 @@
     "key": "SUBMIT",
     "oldValue": "Continue",
     "newValue": "Sign in",
+    "context": {
+      "description": "Primary login button label.",
+      "screenUrl": "https://app.example.com/login",
+      "componentName": "LoginSubmitButton"
+    },
     "source": {
       "file": "manual_base.json",
       "hunk": "@@ AUTH.LOGIN @@",
@@ -58,6 +77,10 @@
     "key": "USERS",
     "oldValue": "Active users",
     "newValue": "Team members",
+    "context": {
+      "description": "Label in KPI card showing number of people in current workspace.",
+      "screenUrl": "https://app.example.com/dashboard?tab=overview"
+    },
     "source": {
       "file": "manual_base.json",
       "hunk": "@@ DASHBOARD.STATS @@",
@@ -71,6 +94,11 @@
     "key": "SAVE",
     "oldValue": "Save profile",
     "newValue": "Save changes",
+    "context": {
+      "description": "Save button in profile preferences form.",
+      "screenUrl": "https://app.example.com/settings/profile",
+      "componentName": "ProfileSaveButton"
+    },
     "source": {
       "file": "manual_base.json",
       "hunk": "@@ SETTINGS.PROFILE @@",
@@ -83,6 +111,10 @@
     "segments": ["HOME", "HERO", "CTA_SECONDARY"],
     "key": "CTA_SECONDARY",
     "oldValue": "Learn more",
+    "context": {
+      "description": "Secondary hero action removed during simplification.",
+      "screenUrl": "https://app.example.com/home"
+    },
     "source": {
       "file": "manual_base.json",
       "hunk": "@@ HOME.HERO @@",
@@ -95,6 +127,10 @@
     "segments": ["AUTH", "LOGIN", "HELP"],
     "key": "HELP",
     "oldValue": "Need help signing in?",
+    "context": {
+      "description": "Inline login helper text removed in redesign.",
+      "screenUrl": "https://app.example.com/login"
+    },
     "source": {
       "file": "manual_base.json",
       "hunk": "@@ AUTH.LOGIN @@",
@@ -107,6 +143,11 @@
     "segments": ["DASHBOARD", "EMPTY", "MESSAGE"],
     "key": "MESSAGE",
     "oldValue": "No data available",
+    "context": {
+      "description": "Empty state copy removed because this card is no longer used.",
+      "screenUrl": "https://app.example.com/dashboard?tab=overview",
+      "componentName": "DashboardEmptyState"
+    },
     "source": {
       "file": "manual_base.json",
       "hunk": "@@ DASHBOARD.EMPTY @@",
@@ -119,6 +160,10 @@
     "segments": ["SETTINGS", "SECURITY", "TWO_FACTOR"],
     "key": "TWO_FACTOR",
     "oldValue": "Two-factor authentication",
+    "context": {
+      "description": "Legacy security option hidden in current release.",
+      "screenUrl": "https://app.example.com/settings/security"
+    },
     "source": {
       "file": "manual_base.json",
       "hunk": "@@ SETTINGS.SECURITY @@",
@@ -131,6 +176,10 @@
     "segments": ["BILLING", "PLAN", "LEGACY"],
     "key": "LEGACY",
     "oldValue": "Legacy plan",
+    "context": {
+      "description": "Removed because legacy plans are fully migrated.",
+      "screenUrl": "https://app.example.com/billing/plans"
+    },
     "source": {
       "file": "manual_base.json",
       "hunk": "@@ BILLING.PLAN @@",
@@ -143,6 +192,10 @@
     "segments": ["NOTIFICATIONS", "EMAIL", "WEEKLY"],
     "key": "WEEKLY",
     "oldValue": "Weekly summary",
+    "context": {
+      "description": "Weekly digest option removed to reduce email volume.",
+      "screenUrl": "https://app.example.com/settings/notifications"
+    },
     "source": {
       "file": "manual_base.json",
       "hunk": "@@ NOTIFICATIONS.EMAIL @@",
@@ -155,6 +208,11 @@
     "segments": ["HOME", "HERO", "BADGE"],
     "key": "BADGE",
     "newValue": "New",
+    "context": {
+      "description": "Badge displayed above hero title for product launch week.",
+      "screenUrl": "https://app.example.com/home",
+      "componentName": "HomeHeroBadge"
+    },
     "source": {
       "file": "manual_base.json",
       "hunk": "@@ HOME.HERO @@",
@@ -167,6 +225,10 @@
     "segments": ["AUTH", "LOGIN", "SSO"],
     "key": "SSO",
     "newValue": "Continue with SSO",
+    "context": {
+      "description": "New SSO call to action below the main login button.",
+      "screenUrl": "https://app.example.com/login?mode=sso"
+    },
     "source": {
       "file": "manual_base.json",
       "hunk": "@@ AUTH.LOGIN @@",
@@ -179,6 +241,11 @@
     "segments": ["DASHBOARD", "STATS", "REVENUE"],
     "key": "REVENUE",
     "newValue": "Monthly revenue",
+    "context": {
+      "description": "New KPI card label in top stats row.",
+      "screenUrl": "https://app.example.com/dashboard?tab=finance",
+      "componentName": "RevenueKpiCard"
+    },
     "source": {
       "file": "manual_base.json",
       "hunk": "@@ DASHBOARD.STATS @@",
@@ -191,6 +258,11 @@
     "segments": ["SETTINGS", "PROFILE", "TIMEZONE"],
     "key": "TIMEZONE",
     "newValue": "Timezone",
+    "context": {
+      "description": "Field label for timezone dropdown in profile form.",
+      "screenUrl": "https://app.example.com/settings/profile",
+      "componentName": "ProfileTimezoneField"
+    },
     "source": {
       "file": "manual_base.json",
       "hunk": "@@ SETTINGS.PROFILE @@",
@@ -203,6 +275,11 @@
     "segments": ["BILLING", "PLAN", "PRO"],
     "key": "PRO",
     "newValue": "Pro plan",
+    "context": {
+      "description": "Label for the newly highlighted paid tier.",
+      "screenUrl": "https://app.example.com/billing/plans",
+      "componentName": "PlanComparisonTable"
+    },
     "source": {
       "file": "manual_base.json",
       "hunk": "@@ BILLING.PLAN @@",
@@ -215,6 +292,11 @@
     "segments": ["NOTIFICATIONS", "PUSH", "ENABLED"],
     "key": "ENABLED",
     "newValue": "Enable push notifications",
+    "context": {
+      "description": "Toggle label in notifications preferences.",
+      "screenUrl": "https://app.example.com/settings/notifications",
+      "componentName": "PushNotificationToggle"
+    },
     "source": {
       "file": "manual_base.json",
       "hunk": "@@ NOTIFICATIONS.PUSH @@",

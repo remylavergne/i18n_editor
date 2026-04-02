@@ -100,6 +100,15 @@ export function ApplyChanges() {
   }
 
   const parseStandardizedChangeFile = (content: string): main.StandardizedDiffChange[] => {
+    const isValidScreenUrl = (value: string) => {
+      try {
+        const parsed = new URL(value)
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+      } catch {
+        return false
+      }
+    }
+
     const raw = JSON.parse(content)
     if (!Array.isArray(raw)) {
       throw new Error(t('applyChanges.invalidChangesFile'))
@@ -112,6 +121,10 @@ export function ApplyChanges() {
 
       if (!item.action || !item.path) {
         throw new Error(t('applyChanges.invalidChangeAt', { index: index + 1 }))
+      }
+
+      if (item.context?.screenUrl && !isValidScreenUrl(item.context.screenUrl)) {
+        throw new Error(t('applyChanges.invalidScreenUrlAt', { index: index + 1 }))
       }
 
       return main.StandardizedDiffChange.createFrom(item)
@@ -455,6 +468,32 @@ export function ApplyChanges() {
                 </p>
               )}
 
+              {(currentStandardized?.context?.description || currentStandardized?.context?.screenUrl || currentStandardized?.context?.componentName) && (
+                <div className="rounded-md border bg-background p-3 space-y-2">
+                  <p className="text-sm font-semibold">{t('applyChanges.contextTitle')}</p>
+                  {currentStandardized?.context?.description && (
+                    <p className="text-sm text-muted-foreground">
+                      {t('applyChanges.contextDescription')}: {currentStandardized.context.description}
+                    </p>
+                  )}
+                  {currentStandardized?.context?.componentName && (
+                    <p className="text-sm text-muted-foreground">
+                      {t('applyChanges.contextComponent')}: {currentStandardized.context.componentName}
+                    </p>
+                  )}
+                  {currentStandardized?.context?.screenUrl && (
+                    <a
+                      href={currentStandardized.context.screenUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-block text-sm text-primary underline underline-offset-2 break-all"
+                    >
+                      {t('applyChanges.contextScreenUrl')}: {currentStandardized.context.screenUrl}
+                    </a>
+                  )}
+                </div>
+              )}
+
               {currentChange.type !== 'add' && (
                 <div>
                   <p className="text-sm font-medium mb-1">{t('applyChanges.currentValue')}</p>
@@ -487,7 +526,7 @@ export function ApplyChanges() {
             </div>
 
             {isAlreadyApplied && (
-              <div className="rounded-md border border-blue-200 bg-blue-50 p-4 text-blue-700 text-base">
+              <div className="rounded-md border border-[#ff6f0d]/30 bg-[#ff6f0d]/10 p-4 text-[#ff6f0d] text-base">
                 {t('applyChanges.alreadyAppliedMessage')}
               </div>
             )}

@@ -11,7 +11,7 @@ function DiffLine({ line }: DiffLineProps) {
       return 'bg-red-100 text-red-800'
     }
     if (line.startsWith('@@')) {
-      return 'bg-blue-100 text-blue-800'
+      return 'bg-[#ff6f0d]/15 text-[#ff6f0d]'
     }
     if (line.startsWith('diff') || line.startsWith('index') || line.startsWith('---') || line.startsWith('+++')) {
       return 'text-muted-foreground'

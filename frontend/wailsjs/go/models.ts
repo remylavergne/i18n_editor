@@ -20,6 +20,22 @@ export namespace main {
 	        this.line = source["line"];
 	    }
 	}
+	export class DiffChangeContext {
+	    description?: string;
+	    screenUrl?: string;
+	    componentName?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new DiffChangeContext(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.description = source["description"];
+	        this.screenUrl = source["screenUrl"];
+	        this.componentName = source["componentName"];
+	    }
+	}
 	export class DiffChangeSource {
 	    file?: string;
 	    hunk?: string;
@@ -43,6 +59,7 @@ export namespace main {
 	    key: string;
 	    oldValue?: string;
 	    newValue?: string;
+	    context?: DiffChangeContext;
 	    source: DiffChangeSource;
 	
 	    static createFrom(source: any = {}) {
@@ -57,6 +74,7 @@ export namespace main {
 	        this.key = source["key"];
 	        this.oldValue = source["oldValue"];
 	        this.newValue = source["newValue"];
+	        this.context = this.convertValues(source["context"], DiffChangeContext);
 	        this.source = this.convertValues(source["source"], DiffChangeSource);
 	    }
 	
