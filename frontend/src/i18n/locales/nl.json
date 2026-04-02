@@ -24,6 +24,9 @@
     "component": "Component",
     "rowSaved": "Opgeslagen: {{path}}",
     "loadedSummary": "{{count}} bewerkbare regels geladen.",
+    "rollbackAll": "Alle bewerkingen terugdraaien",
+    "rollbackSuccess": "Alle bewerkingen zijn teruggedraaid. Origineel bestand hersteld.",
+    "noRollbackBackup": "Nog geen back-up beschikbaar. Pas eerst minstens een regel toe.",
     "patchNotFullyApplied": "{{count}} wijziging(en) uit deze patch zijn nog niet toegepast in het doelbestand. Gebruik eerst Wijzigingen toepassen.",
     "invalidChangesFile": "Ongeldig wijzigingsbestand. Een JSON-array wordt verwacht.",
     "selectFileError": "Selecteren van bestand mislukt"
@@ -58,6 +61,7 @@
     "changesFile": "Wijzigingsbestand",
     "diffFile": "Diff bestand",
     "apply": "Wijzigingen toepassen",
+    "applyAll": "Alles toepassen",
     "selectJsonFile": "Selecteer JSON vertaalbestand",
     "selectChangesFile": "Selecteer gestandaardiseerd JSON-wijzigingsbestand",
     "selectDiffFile": "Selecteer diff/patch bestand",

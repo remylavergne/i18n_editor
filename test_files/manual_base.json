@@ -1,47 +1,47 @@
 {
-  "HOME": {
-    "HERO": {
-      "TITLE": "Welcome to the portal",
-      "SUBTITLE": "Manage your workspace in one place",
-      "CTA_PRIMARY": "Get started",
-      "CTA_SECONDARY": "Learn more"
-    }
-  },
   "AUTH": {
     "LOGIN": {
-      "TITLE": "Sign in",
-      "SUBMIT": "Continue",
-      "HELP": "Need help signing in?"
-    }
-  },
-  "DASHBOARD": {
-    "STATS": {
-      "USERS": "Active users",
-      "PROJECTS": "Projects"
-    },
-    "EMPTY": {
-      "MESSAGE": "No data available"
-    }
-  },
-  "SETTINGS": {
-    "PROFILE": {
-      "SAVE": "Save profile",
-      "CANCEL": "Cancel"
-    },
-    "SECURITY": {
-      "TWO_FACTOR": "Two-factor authentication"
+      "SSO": "Continue with SSO",
+      "SUBMIT": "Sign in",
+      "TITLE": "Log in"
     }
   },
   "BILLING": {
     "PLAN": {
       "CURRENT": "Current plan",
-      "LEGACY": "Legacy plan"
+      "PRO": "Pro plan"
+    }
+  },
+  "DASHBOARD": {
+    "EMPTY": {},
+    "STATS": {
+      "PROJECTS": "Projects",
+      "REVENUE": "Monthly revenue",
+      "USERS": "Team members"
+    }
+  },
+  "HOME": {
+    "HERO": {
+      "BADGE": "New",
+      "CTA_PRIMARY": "Get started",
+      "SUBTITLE": "Run everything from one unified workspace",
+      "TITLE": "Welcome to your control center"
     }
   },
   "NOTIFICATIONS": {
     "EMAIL": {
-      "WEEKLY": "Weekly summary",
       "MONTHLY": "Monthly report"
+    },
+    "PUSH": {
+      "ENABLED": "Enable push notifications"
     }
+  },
+  "SETTINGS": {
+    "PROFILE": {
+      "CANCEL": "Cancel",
+      "SAVE": "Save changes",
+      "TIMEZONE": "Timezone"
+    },
+    "SECURITY": {}
   }
 }

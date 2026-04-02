@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { AlertCircle, CheckCircle, FolderOpen, PencilLine } from 'lucide-react'
-import { ApplyChangeToJson, CheckAlreadyApplied, OpenFileDialog, ReadJsonFile, ReadTextFile } from '../../wailsjs/go/main/App'
+import { ApplyChangeToJson, CheckAlreadyApplied, CreateBackupFile, DeleteFile, OpenFileDialog, ReadJsonFile, ReadTextFile, RestoreFileFromBackup } from '../../wailsjs/go/main/App'
 import { main } from '../../wailsjs/go/models'
 
 interface EditableRow {
@@ -55,6 +55,17 @@ export function EditAppliedChanges() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [savingPath, setSavingPath] = useState('')
+  const [backupFilePath, setBackupFilePath] = useState('')
+
+  const cleanupBackupFile = async () => {
+    if (!backupFilePath) return
+    try {
+      await DeleteFile(backupFilePath)
+    } catch {
+      // ignore cleanup errors
+    }
+    setBackupFilePath('')
+  }
 
   const handleSelectTargetFile = async () => {
     try {
@@ -89,6 +100,8 @@ export function EditAppliedChanges() {
     setSuccess('')
 
     try {
+      await cleanupBackupFile()
+
       const [jsonRaw, changesRaw] = await Promise.all([
         ReadJsonFile(targetFile),
         ReadTextFile(changesFile),
@@ -191,6 +204,11 @@ export function EditAppliedChanges() {
     })
 
     try {
+      if (!backupFilePath) {
+        const createdBackupPath = await CreateBackupFile(targetFile)
+        setBackupFilePath(createdBackupPath)
+      }
+
       await ApplyChangeToJson(targetFile, change, row.editedValue)
       setRows((prev) =>
         prev.map((item) =>
@@ -205,6 +223,39 @@ export function EditAppliedChanges() {
       setError(errorMessage)
     } finally {
       setSavingPath('')
+    }
+  }
+
+  const handleRollbackAll = async () => {
+    if (!backupFilePath) {
+      setError(t('editApplied.noRollbackBackup'))
+      return
+    }
+
+    setLoading(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      await RestoreFileFromBackup(targetFile, backupFilePath)
+      setBackupFilePath('')
+      const refreshed = await ReadJsonFile(targetFile)
+      setRows((prev) =>
+        prev.map((row) => {
+          const nextValue = asEditableString(getNestedValue(refreshed, row.path))
+          return {
+            ...row,
+            currentValue: nextValue,
+            editedValue: nextValue,
+          }
+        })
+      )
+      setSuccess(t('editApplied.rollbackSuccess'))
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err)
+      setError(errorMessage)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -266,6 +317,14 @@ export function EditAppliedChanges() {
           <CardHeader>
             <CardTitle className="text-xl">{t('editApplied.listTitle', { count: rows.length })}</CardTitle>
             <CardDescription>{t('editApplied.listDescription')}</CardDescription>
+            <Button
+              variant="outline"
+              className="w-full sm:w-fit mt-3"
+              onClick={handleRollbackAll}
+              disabled={loading || !backupFilePath}
+            >
+              {t('editApplied.rollbackAll')}
+            </Button>
           </CardHeader>
           <CardContent>
             <div className="max-h-[60vh] overflow-y-auto pr-2 space-y-3">

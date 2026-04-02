@@ -24,6 +24,9 @@
     "component": "Component",
     "rowSaved": "Saved: {{path}}",
     "loadedSummary": "Loaded {{count}} editable rows.",
+    "rollbackAll": "Rollback all edits",
+    "rollbackSuccess": "All edits were rolled back. Original file restored.",
+    "noRollbackBackup": "No backup available yet. Apply at least one row first.",
     "patchNotFullyApplied": "{{count}} change(s) from this patch are not applied in the target file yet. Please use Apply Changes first.",
     "invalidChangesFile": "Invalid changes file. Expected a JSON array.",
     "selectFileError": "Failed to select file"
@@ -58,6 +61,7 @@
     "changesFile": "Changes File",
     "diffFile": "Diff File",
     "apply": "Apply Changes",
+    "applyAll": "Apply all",
     "selectJsonFile": "Select JSON translation file",
     "selectChangesFile": "Select standardized changes JSON file",
     "selectDiffFile": "Select diff/patch file",

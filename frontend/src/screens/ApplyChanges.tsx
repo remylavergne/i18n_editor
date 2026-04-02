@@ -229,6 +229,47 @@ export function ApplyChanges() {
     moveToNext()
   }
 
+  const handleApplyAll = async () => {
+    setLoading(true)
+    setError('')
+
+    try {
+      let nextBackupPath = backupFilePath
+      if (!nextBackupPath) {
+        nextBackupPath = await CreateBackupFile(targetFile)
+        setBackupFilePath(nextBackupPath)
+      }
+
+      const appliedSet = new Set(appliedChanges.map((change) => change.key))
+      const rejectedSet = new Set(rejectedChanges.map((change) => change.key))
+
+      const remainingToApply = changes.filter((change, index) => {
+        if (index < currentIndex) {
+          return false
+        }
+        if (alreadyApplied[index]) {
+          return false
+        }
+        if (appliedSet.has(change.key)) {
+          return false
+        }
+        if (rejectedSet.has(change.key)) {
+          return false
+        }
+        return true
+      })
+
+      setAppliedChanges([...appliedChanges, ...remainingToApply])
+      setCurrentIndex(changes.length - 1)
+      setStep('complete')
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err)
+      setError(errorMessage)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleOverrideChange = (value: string) => {
     const currentChange = changes[currentIndex]
     setOverrides({
@@ -537,7 +578,7 @@ export function ApplyChanges() {
                 {t('applyChanges.nextChange')}
               </Button>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <Button variant="outline" className="h-12 text-base" onClick={handleReject}>
                   <X className="h-4 w-4 mr-2" />
                   {t('applyChanges.reject')}
@@ -545,6 +586,9 @@ export function ApplyChanges() {
                 <Button className="h-12 text-base" onClick={handleApply}>
                   <CheckCircle className="h-4 w-4 mr-2" />
                   {t('applyChanges.apply')}
+                </Button>
+                <Button variant="secondary" className="h-12 text-base" onClick={handleApplyAll} disabled={loading}>
+                  {t('applyChanges.applyAll')}
                 </Button>
               </div>
             )}

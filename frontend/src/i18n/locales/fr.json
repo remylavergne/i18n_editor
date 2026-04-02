@@ -24,6 +24,9 @@
     "component": "Composant",
     "rowSaved": "Enregistre : {{path}}",
     "loadedSummary": "{{count}} lignes modifiables chargees.",
+    "rollbackAll": "Annuler toutes les modifications",
+    "rollbackSuccess": "Toutes les modifications ont ete annulees. Le fichier original a ete restaure.",
+    "noRollbackBackup": "Aucune sauvegarde disponible pour l'instant. Appliquez au moins une ligne d'abord.",
     "patchNotFullyApplied": "{{count}} modification(s) de ce patch ne sont pas encore appliquees dans le fichier cible. Veuillez d'abord utiliser Appliquer les modifications.",
     "invalidChangesFile": "Fichier de modifications invalide. Un tableau JSON est attendu.",
     "selectFileError": "Echec de la selection du fichier"
@@ -58,6 +61,7 @@
     "changesFile": "Fichier des modifications",
     "diffFile": "Fichier diff",
     "apply": "Appliquer les modifications",
+    "applyAll": "Tout appliquer",
     "selectJsonFile": "Sélectionner le fichier JSON de traduction",
     "selectChangesFile": "Selectionner le fichier JSON de modifications standardisees",
     "selectDiffFile": "Sélectionner le fichier diff/patch",
