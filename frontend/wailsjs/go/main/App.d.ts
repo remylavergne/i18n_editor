@@ -6,6 +6,10 @@ export function ApplyChangeToJson(arg1:string,arg2:main.DiffChange,arg3:string):
 
 export function CheckAlreadyApplied(arg1:string,arg2:Array<main.DiffChange>):Promise<Array<boolean>>;
 
+export function CreateBackupFile(arg1:string):Promise<string>;
+
+export function DeleteFile(arg1:string):Promise<void>;
+
 export function GetAppliedChangesAsJson(arg1:string,arg2:Array<main.DiffChange>,arg3:Record<string, string>):Promise<string>;
 
 export function GetWorkingDirectory():Promise<string>;
@@ -27,6 +31,8 @@ export function ParseDiffToStandardChanges(arg1:string):Promise<Array<main.Stand
 export function ReadJsonFile(arg1:string):Promise<Record<string, any>>;
 
 export function ReadTextFile(arg1:string):Promise<string>;
+
+export function RestoreFileFromBackup(arg1:string,arg2:string):Promise<void>;
 
 export function SaveAppliedChanges(arg1:string,arg2:Array<main.DiffChange>,arg3:Record<string, string>,arg4:string):Promise<void>;
 

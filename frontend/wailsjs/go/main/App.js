@@ -10,6 +10,14 @@ export function CheckAlreadyApplied(arg1, arg2) {
   return window['go']['main']['App']['CheckAlreadyApplied'](arg1, arg2);
 }
 
+export function CreateBackupFile(arg1) {
+  return window['go']['main']['App']['CreateBackupFile'](arg1);
+}
+
+export function DeleteFile(arg1) {
+  return window['go']['main']['App']['DeleteFile'](arg1);
+}
+
 export function GetAppliedChangesAsJson(arg1, arg2, arg3) {
   return window['go']['main']['App']['GetAppliedChangesAsJson'](arg1, arg2, arg3);
 }
@@ -52,6 +60,10 @@ export function ReadJsonFile(arg1) {
 
 export function ReadTextFile(arg1) {
   return window['go']['main']['App']['ReadTextFile'](arg1);
+}
+
+export function RestoreFileFromBackup(arg1, arg2) {
+  return window['go']['main']['App']['RestoreFileFromBackup'](arg1, arg2);
 }
 
 export function SaveAppliedChanges(arg1, arg2, arg3, arg4) {

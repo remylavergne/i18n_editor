@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -93,6 +94,48 @@ func (a *App) SaveTextFile(filePath, content string) error {
 	err := os.WriteFile(filePath, []byte(content), 0644)
 	if err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
+	}
+	return nil
+}
+
+func (a *App) CreateBackupFile(filePath string) (string, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read source file: %w", err)
+	}
+
+	info, err := os.Stat(filePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to stat source file: %w", err)
+	}
+
+	backupPath := filepath.Clean(filePath + ".i18n-editor.bak")
+	if err := os.WriteFile(backupPath, data, info.Mode()); err != nil {
+		return "", fmt.Errorf("failed to write backup file: %w", err)
+	}
+
+	return backupPath, nil
+}
+
+func (a *App) RestoreFileFromBackup(targetPath, backupPath string) error {
+	if _, err := os.Stat(backupPath); err != nil {
+		return fmt.Errorf("backup file not found: %w", err)
+	}
+
+	if err := os.Remove(targetPath); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to delete current file: %w", err)
+	}
+
+	if err := os.Rename(backupPath, targetPath); err != nil {
+		return fmt.Errorf("failed to restore backup file: %w", err)
+	}
+
+	return nil
+}
+
+func (a *App) DeleteFile(filePath string) error {
+	if err := os.Remove(filePath); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to delete file: %w", err)
 	}
 	return nil
 }

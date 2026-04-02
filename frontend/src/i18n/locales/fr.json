@@ -75,7 +75,9 @@
     "selectFileError": "Echec de la selection du fichier",
     "noChangesFound": "Aucune modification trouvee dans le fichier selectionne.",
     "noAppliedChanges": "Aucune modification selectionnee a appliquer.",
-    "emptyOutputError": "Aucun contenu genere a partir des modifications selectionnees."
+    "emptyOutputError": "Aucun contenu genere a partir des modifications selectionnees.",
+    "abort": "Annuler et restaurer l'original",
+    "abortSuccess": "Processus annule. Le fichier original a ete restaure depuis la sauvegarde."
   },
   "errors": {
     "fillAllFields": "Veuillez remplir tous les champs",

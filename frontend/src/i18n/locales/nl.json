@@ -75,7 +75,9 @@
     "selectFileError": "Selecteren van bestand mislukt",
     "noChangesFound": "Geen wijzigingen gevonden in het geselecteerde bestand.",
     "noAppliedChanges": "Geen wijzigingen geselecteerd om toe te passen.",
-    "emptyOutputError": "Geen inhoud gegenereerd op basis van de geselecteerde wijzigingen."
+    "emptyOutputError": "Geen inhoud gegenereerd op basis van de geselecteerde wijzigingen.",
+    "abort": "Afbreken en origineel herstellen",
+    "abortSuccess": "Proces afgebroken. Origineel bestand hersteld vanuit back-up."
   },
   "errors": {
     "fillAllFields": "Vul alle velden in",

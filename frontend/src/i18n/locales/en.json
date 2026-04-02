@@ -75,7 +75,9 @@
     "selectFileError": "Failed to select file",
     "noChangesFound": "No changes were found in the selected file.",
     "noAppliedChanges": "No changes selected for apply.",
-    "emptyOutputError": "No content generated from selected changes."
+    "emptyOutputError": "No content generated from selected changes.",
+    "abort": "Abort and restore original",
+    "abortSuccess": "Process aborted. Original file restored from backup."
   },
   "errors": {
     "fillAllFields": "Please fill in all fields",

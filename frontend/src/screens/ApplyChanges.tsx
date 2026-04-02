@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { FileSpreadsheet, FolderOpen, AlertCircle, CheckCircle, Save, X, ArrowRight } from "lucide-react"
-import { CheckAlreadyApplied, GetAppliedChangesAsJson, OpenFileDialog, ReadTextFile, SaveAppliedChanges, SaveFileDialog, SaveTextFile } from "../../wailsjs/go/main/App"
+import { CheckAlreadyApplied, CreateBackupFile, DeleteFile, GetAppliedChangesAsJson, OpenFileDialog, ReadTextFile, RestoreFileFromBackup, SaveAppliedChanges, SaveFileDialog, SaveTextFile } from "../../wailsjs/go/main/App"
 import { main } from "../../wailsjs/go/models"
 
 interface DiffChange {
@@ -33,6 +33,7 @@ export function ApplyChanges() {
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState<Step>('select')
+  const [backupFilePath, setBackupFilePath] = useState('')
 
   const getActionLabel = (action: string) => {
     switch (action) {
@@ -82,6 +83,20 @@ export function ApplyChanges() {
         return mapped
       })
       .filter((change) => change.type !== '')
+  }
+
+  const cleanupBackupFile = async () => {
+    if (!backupFilePath) {
+      return
+    }
+
+    try {
+      await DeleteFile(backupFilePath)
+    } catch {
+      // ignore cleanup errors
+    }
+
+    setBackupFilePath('')
   }
 
   const parseStandardizedChangeFile = (content: string): main.StandardizedDiffChange[] => {
@@ -135,6 +150,8 @@ export function ApplyChanges() {
     setError('')
     setSuccess('')
 
+    await cleanupBackupFile()
+
     try {
       const content = await ReadTextFile(changesFile)
       const parsedStandardized = parseStandardizedChangeFile(content)
@@ -171,8 +188,27 @@ export function ApplyChanges() {
   }
 
   const handleApply = () => {
-    setAppliedChanges([...appliedChanges, changes[currentIndex]])
-    moveToNext()
+    const applyChange = async () => {
+      setLoading(true)
+      setError('')
+
+      try {
+        if (!backupFilePath) {
+          const createdBackupPath = await CreateBackupFile(targetFile)
+          setBackupFilePath(createdBackupPath)
+        }
+
+        setAppliedChanges([...appliedChanges, changes[currentIndex]])
+        moveToNext()
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : String(err)
+        setError(errorMessage)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    void applyChange()
   }
 
   const handleReject = () => {
@@ -239,7 +275,38 @@ export function ApplyChanges() {
     }
   }
 
-  const handleReset = () => {
+  const handleAbort = async () => {
+    setLoading(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      if (backupFilePath) {
+        await RestoreFileFromBackup(targetFile, backupFilePath)
+      }
+
+      setSuccess(t('applyChanges.abortSuccess'))
+      setTargetFile('')
+      setChangesFile('')
+      setStandardizedChanges([])
+      setChanges([])
+      setCurrentIndex(0)
+      setAppliedChanges([])
+      setRejectedChanges([])
+      setAlreadyApplied([])
+      setOverrides({})
+      setBackupFilePath('')
+      setStep('select')
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err)
+      setError(errorMessage)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleReset = async () => {
+    await cleanupBackupFile()
     setTargetFile('')
     setChangesFile('')
     setStandardizedChanges([])
@@ -320,6 +387,15 @@ export function ApplyChanges() {
               disabled={loading || !targetFile || !changesFile}
             >
               {loading ? t('applyChanges.loading') : t('applyChanges.loadChanges')}
+            </Button>
+
+            <Button
+              variant="outline"
+              className="w-full h-12 text-base"
+              onClick={handleAbort}
+              disabled={loading}
+            >
+              {t('applyChanges.abort')}
             </Button>
           </CardContent>
         </Card>
@@ -434,6 +510,10 @@ export function ApplyChanges() {
               </div>
             )}
 
+            <Button variant="outline" className="w-full h-12 text-base" onClick={handleAbort} disabled={loading}>
+              {t('applyChanges.abort')}
+            </Button>
+
             <div className="rounded-md border p-3 text-sm text-muted-foreground text-center">
               {appliedChanges.length} {t('applyChanges.applied')} | {rejectedChanges.length} {t('applyChanges.rejected')} | {alreadyApplied.filter(Boolean).length} {t('applyChanges.alreadyApplied')}
             </div>
@@ -515,6 +595,10 @@ export function ApplyChanges() {
                 {t('applyChanges.overwriteFile')}
               </Button>
             </div>
+
+            <Button variant="outline" className="w-full h-12 text-base" onClick={handleAbort} disabled={loading}>
+              {t('applyChanges.abort')}
+            </Button>
           </CardContent>
         </Card>
       </div>
