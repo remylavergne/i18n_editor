@@ -20,6 +20,7 @@ type Step = 'select' | 'review' | 'complete'
 
 export function ApplyChanges() {
   const { t } = useTranslation()
+  const placeholderContextImageUrl = 'https://www.flandersclassics.be/_media/blocks/image/1701958876/crop/2000/0/892/892.jpg'
   const [targetFile, setTargetFile] = useState('')
   const [changesFile, setChangesFile] = useState('')
   const [standardizedChanges, setStandardizedChanges] = useState<main.StandardizedDiffChange[]>([])
@@ -34,6 +35,7 @@ export function ApplyChanges() {
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState<Step>('select')
   const [backupFilePath, setBackupFilePath] = useState('')
+  const [isContextImageOpen, setIsContextImageOpen] = useState(false)
 
   const getActionLabel = (action: string) => {
     switch (action) {
@@ -509,31 +511,41 @@ export function ApplyChanges() {
                 </p>
               )}
 
-              {(currentStandardized?.context?.description || currentStandardized?.context?.screenUrl || currentStandardized?.context?.componentName) && (
-                <div className="rounded-md border bg-background p-3 space-y-2">
-                  <p className="text-sm font-semibold">{t('applyChanges.contextTitle')}</p>
-                  {currentStandardized?.context?.description && (
-                    <p className="text-sm text-muted-foreground">
-                      {t('applyChanges.contextDescription')}: {currentStandardized.context.description}
-                    </p>
-                  )}
-                  {currentStandardized?.context?.componentName && (
-                    <p className="text-sm text-muted-foreground">
-                      {t('applyChanges.contextComponent')}: {currentStandardized.context.componentName}
-                    </p>
-                  )}
-                  {currentStandardized?.context?.screenUrl && (
-                    <a
-                      href={currentStandardized.context.screenUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-block text-sm text-primary underline underline-offset-2 break-all"
-                    >
-                      {t('applyChanges.contextScreenUrl')}: {currentStandardized.context.screenUrl}
-                    </a>
-                  )}
-                </div>
-              )}
+              <div className="rounded-md border bg-background p-3 space-y-3">
+                <p className="text-sm font-semibold">{t('applyChanges.contextTitle')}</p>
+                {currentStandardized?.context?.description && (
+                  <p className="text-sm text-muted-foreground">
+                    {t('applyChanges.contextDescription')}: {currentStandardized.context.description}
+                  </p>
+                )}
+                {currentStandardized?.context?.componentName && (
+                  <p className="text-sm text-muted-foreground">
+                    {t('applyChanges.contextComponent')}: {currentStandardized.context.componentName}
+                  </p>
+                )}
+                {currentStandardized?.context?.screenUrl && (
+                  <a
+                    href={currentStandardized.context.screenUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-block text-sm text-primary underline underline-offset-2 break-all"
+                  >
+                    {t('applyChanges.contextScreenUrl')}: {currentStandardized.context.screenUrl}
+                  </a>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setIsContextImageOpen(true)}
+                  className="block text-left"
+                >
+                  <img
+                    src={placeholderContextImageUrl}
+                    alt="Context preview"
+                    className="h-36 w-full max-w-xs object-cover rounded-md border cursor-zoom-in"
+                  />
+                </button>
+              </div>
 
               {currentChange.type !== 'add' && (
                 <div>
@@ -600,6 +612,28 @@ export function ApplyChanges() {
             <div className="rounded-md border p-3 text-sm text-muted-foreground text-center">
               {appliedChanges.length} {t('applyChanges.applied')} | {rejectedChanges.length} {t('applyChanges.rejected')} | {alreadyApplied.filter(Boolean).length} {t('applyChanges.alreadyApplied')}
             </div>
+
+            {isContextImageOpen && (
+              <div
+                className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
+                onClick={() => setIsContextImageOpen(false)}
+              >
+                <div className="relative max-w-5xl w-full" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    className="absolute -top-10 right-0 text-white text-sm underline"
+                    onClick={() => setIsContextImageOpen(false)}
+                  >
+                    Close
+                  </button>
+                  <img
+                    src={placeholderContextImageUrl}
+                    alt="Context preview large"
+                    className="w-full max-h-[85vh] object-contain rounded-md"
+                  />
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
