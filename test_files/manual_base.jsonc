@@ -1,0 +1,83 @@
+{
+  // @context {"description":"Home page labels","screenUrl":"https://app.example.com/home","componentName":"HomePage"}
+  "HOME": {
+    // @context {"description":"Hero section copy","screenUrl":"https://app.example.com/home","componentName":"HomeHero"}
+    "HERO": {
+      // @context {"description":"Main hero heading shown after login","screenUrl":"https://app.example.com/home","componentName":"HomeHeroTitle"}
+      "TITLE": "Welcome to the portal",
+      // @context {"description":"Supporting sentence below hero title","screenUrl":"https://app.example.com/home","componentName":"HomeHeroSubtitle"}
+      "SUBTITLE": "Manage your workspace in one place",
+      // @context {"description":"Primary call-to-action button in hero","screenUrl":"https://app.example.com/home","componentName":"HomeHeroPrimaryButton"}
+      "CTA_PRIMARY": "Get started",
+      // @context {"description":"Secondary call-to-action in hero","screenUrl":"https://app.example.com/home","componentName":"HomeHeroSecondaryButton"}
+      "CTA_SECONDARY": "Learn more"
+    }
+  },
+
+  // @context {"description":"Authentication flow labels","screenUrl":"https://app.example.com/login","componentName":"AuthLayout"}
+  "AUTH": {
+    // @context {"description":"Login form labels","screenUrl":"https://app.example.com/login","componentName":"LoginForm"}
+    "LOGIN": {
+      // @context {"description":"Login page heading","screenUrl":"https://app.example.com/login","componentName":"LoginHeader"}
+      "TITLE": "Sign in",
+      // @context {"description":"Login submit button text","screenUrl":"https://app.example.com/login","componentName":"LoginSubmitButton"}
+      "SUBMIT": "Continue",
+      // @context {"description":"Helper text under login form","screenUrl":"https://app.example.com/login","componentName":"LoginHelpText"}
+      "HELP": "Need help signing in?"
+    }
+  },
+
+  // @context {"description":"Dashboard area labels","screenUrl":"https://app.example.com/dashboard","componentName":"DashboardPage"}
+  "DASHBOARD": {
+    // @context {"description":"KPI cards at top of dashboard","screenUrl":"https://app.example.com/dashboard?tab=overview","componentName":"DashboardStatsGrid"}
+    "STATS": {
+      // @context {"description":"Active user metric card label","screenUrl":"https://app.example.com/dashboard?tab=overview","componentName":"UsersKpiCard"}
+      "USERS": "Active users",
+      // @context {"description":"Project count metric card label","screenUrl":"https://app.example.com/dashboard?tab=overview","componentName":"ProjectsKpiCard"}
+      "PROJECTS": "Projects"
+    },
+    // @context {"description":"Empty state labels for dashboard fallback","screenUrl":"https://app.example.com/dashboard","componentName":"DashboardEmptyState"}
+    "EMPTY": {
+      // @context {"description":"Message shown when no dashboard data exists","screenUrl":"https://app.example.com/dashboard","componentName":"DashboardEmptyMessage"}
+      "MESSAGE": "No data available"
+    }
+  },
+
+  // @context {"description":"Settings section labels","screenUrl":"https://app.example.com/settings","componentName":"SettingsPage"}
+  "SETTINGS": {
+    // @context {"description":"Profile preference form labels","screenUrl":"https://app.example.com/settings/profile","componentName":"ProfileSettingsForm"}
+    "PROFILE": {
+      // @context {"description":"Save button for profile edits","screenUrl":"https://app.example.com/settings/profile","componentName":"ProfileSaveButton"}
+      "SAVE": "Save profile",
+      // @context {"description":"Cancel button for profile edits","screenUrl":"https://app.example.com/settings/profile","componentName":"ProfileCancelButton"}
+      "CANCEL": "Cancel"
+    },
+    // @context {"description":"Security preference labels","screenUrl":"https://app.example.com/settings/security","componentName":"SecuritySettingsPanel"}
+    "SECURITY": {
+      // @context {"description":"Toggle label for two-factor auth option","screenUrl":"https://app.example.com/settings/security","componentName":"TwoFactorSetting"}
+      "TWO_FACTOR": "Two-factor authentication"
+    }
+  },
+
+  // @context {"description":"Billing section labels","screenUrl":"https://app.example.com/billing/plans","componentName":"BillingPlansPage"}
+  "BILLING": {
+    // @context {"description":"Plan table labels","screenUrl":"https://app.example.com/billing/plans","componentName":"PlanComparisonTable"}
+    "PLAN": {
+      // @context {"description":"Label for currently selected plan","screenUrl":"https://app.example.com/billing/plans","componentName":"CurrentPlanBadge"}
+      "CURRENT": "Current plan",
+      // @context {"description":"Label for legacy subscription plan","screenUrl":"https://app.example.com/billing/plans","componentName":"LegacyPlanRow"}
+      "LEGACY": "Legacy plan"
+    }
+  },
+
+  // @context {"description":"Notification preference labels","screenUrl":"https://app.example.com/settings/notifications","componentName":"NotificationSettingsPage"}
+  "NOTIFICATIONS": {
+    // @context {"description":"Email notification options","screenUrl":"https://app.example.com/settings/notifications","componentName":"EmailNotificationPanel"}
+    "EMAIL": {
+      // @context {"description":"Weekly digest option label","screenUrl":"https://app.example.com/settings/notifications","componentName":"WeeklyDigestToggle"}
+      "WEEKLY": "Weekly summary",
+      // @context {"description":"Monthly report option label","screenUrl":"https://app.example.com/settings/notifications","componentName":"MonthlyReportToggle"}
+      "MONTHLY": "Monthly report"
+    }
+  }
+}
