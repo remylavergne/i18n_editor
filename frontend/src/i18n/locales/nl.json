@@ -47,6 +47,8 @@
     "generating": "Genereren...",
     "diffResult": "Diff resultaat",
     "download": "Downloaden",
+    "downloadPatch": "Patch downloaden",
+    "downloadStandardized": "Gestandaardiseerde JSON downloaden",
     "noDifferences": "Geen verschillen gevonden tussen de opgegeven branches voor dit bestand."
   },
   "applyChanges": {

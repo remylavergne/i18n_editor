@@ -55,19 +55,38 @@ export function CreateDiff() {
     }
   }
 
-  const handleDownload = () => {
-    if (!diffResult) return
-
-    const exportPayload = JSON.stringify(standardizedChanges, null, 2)
-    const blob = new Blob([exportPayload], { type: 'application/json' })
+  const downloadBlob = (content: string, type: string, filename: string) => {
+    const blob = new Blob([content], { type })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `diff-${sourceBranch}-${targetBranch}-${filePath.split('/').pop() || 'file'}.json`
+    a.download = filename
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
+  }
+
+  const getTimestamp = () => {
+    const now = new Date()
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
+  }
+
+  const getBaseFilename = () => {
+    const fileName = filePath.split('/').pop() || 'file'
+    return `diff-${sourceBranch}-${targetBranch}-${fileName}-${getTimestamp()}`
+  }
+
+  const handleDownloadPatch = () => {
+    if (!diffResult) return
+    downloadBlob(diffResult, 'text/x-diff', `${getBaseFilename()}.patch`)
+  }
+
+  const handleDownloadStandardized = () => {
+    if (!diffResult) return
+    const exportPayload = JSON.stringify(standardizedChanges, null, 2)
+    downloadBlob(exportPayload, 'application/json', `${getBaseFilename()}.json`)
   }
 
   return (
@@ -157,9 +176,14 @@ export function CreateDiff() {
             <div className="mt-6 space-y-2">
               <div className="flex items-center justify-between">
                 <Label>{t('createDiff.diffResult')}</Label>
-                <Button variant="outline" size="sm" onClick={handleDownload}>
-                  {t('createDiff.download')}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={handleDownloadPatch}>
+                    {t('createDiff.downloadPatch')}
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleDownloadStandardized}>
+                    {t('createDiff.downloadStandardized')}
+                  </Button>
+                </div>
               </div>
               <DiffViewer content={diffResult} maxHeight="max-h-96" />
             </div>

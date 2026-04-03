@@ -47,6 +47,8 @@
     "generating": "Génération...",
     "diffResult": "Résultat du diff",
     "download": "Télécharger",
+    "downloadPatch": "Telecharger patch",
+    "downloadStandardized": "Telecharger JSON standardise",
     "noDifferences": "Aucune différence trouvée entre les branches spécifiées pour ce fichier."
   },
   "applyChanges": {
