@@ -49,6 +49,9 @@
     "download": "Downloaden",
     "downloadPatch": "Patch downloaden",
     "downloadStandardized": "Gestandaardiseerde JSON downloaden",
+    "generateJiraTable": "Genereer Jira tabel",
+    "jiraTableResult": "Jira / Confluence tabel",
+    "copyJiraTable": "Kopieer tabel",
     "noDifferences": "Geen verschillen gevonden tussen de opgegeven branches voor dit bestand."
   },
   "applyChanges": {

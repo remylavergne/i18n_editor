@@ -49,6 +49,9 @@
     "download": "Download",
     "downloadPatch": "Download patch",
     "downloadStandardized": "Download standardized JSON",
+    "generateJiraTable": "Generate Jira table",
+    "jiraTableResult": "Jira / Confluence table",
+    "copyJiraTable": "Copy table",
     "noDifferences": "No differences found between the specified branches for this file."
   },
   "applyChanges": {

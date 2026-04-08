@@ -17,6 +17,7 @@ export function CreateDiff() {
   const [filePath, setFilePath] = useState('')
   const [diffResult, setDiffResult] = useState('')
   const [standardizedChanges, setStandardizedChanges] = useState<main.StandardizedDiffChange[]>([])
+  const [jiraTableOutput, setJiraTableOutput] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -51,6 +52,7 @@ export function CreateDiff() {
       setDiffResult(result)
       const changes = await ParseDiffToStandardChanges(result)
       setStandardizedChanges(changes)
+      setJiraTableOutput('')
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err)
       console.error('GitDiffBranches error:', err)
@@ -103,6 +105,75 @@ export function CreateDiff() {
     }
     const exportPayload = JSON.stringify(standardizedChanges, null, 2)
     await downloadBlob(exportPayload, `${getBaseFilename()}.json`)
+  }
+
+  const formatActionForTable = (action: string) => {
+    if (action === 'change') {
+      return 'modified'
+    }
+    return action
+  }
+
+  const escapeTableCell = (value: string) => {
+    return value
+      .replace(/\|/g, '\\|')
+      .replace(/\r?\n/g, ' ')
+      .trim()
+  }
+
+  const getFrValueForAction = (change: main.StandardizedDiffChange) => {
+    if (change.action === 'delete') {
+      return change.oldValue || ''
+    }
+    return change.newValue || ''
+  }
+
+  const buildJiraConfluenceTable = (changes: main.StandardizedDiffChange[]) => {
+    const sorted = [...changes].sort((a, b) => {
+      const pathCompare = a.path.localeCompare(b.path)
+      if (pathCompare !== 0) {
+        return pathCompare
+      }
+      return a.action.localeCompare(b.action)
+    })
+
+    const header = "|| Path || Action || Traduction FR || Traduction NL || Limitations techniques eventuelles || transversalite ||"
+    const rows = sorted.map((change) => {
+      const path = escapeTableCell(change.path || '')
+      const action = escapeTableCell(formatActionForTable(change.action || ''))
+      const frValue = escapeTableCell(getFrValueForAction(change))
+      return `| ${path} | ${action} | ${frValue} |  |  |  |`
+    })
+
+    return [header, ...rows].join('\n')
+  }
+
+  const handleGenerateJiraTable = async () => {
+    if (!standardizedChanges || standardizedChanges.length === 0) {
+      alert('No standardized changes to export')
+      return
+    }
+
+    const output = buildJiraConfluenceTable(standardizedChanges)
+    setJiraTableOutput(output)
+
+    try {
+      await navigator.clipboard.writeText(output)
+    } catch {
+      // Clipboard may be unavailable in some environments.
+    }
+  }
+
+  const handleCopyJiraTable = async () => {
+    if (!jiraTableOutput) {
+      return
+    }
+
+    try {
+      await navigator.clipboard.writeText(jiraTableOutput)
+    } catch {
+      alert('Unable to copy automatically. Please select and copy manually.')
+    }
   }
 
   return (
@@ -199,9 +270,28 @@ export function CreateDiff() {
                   <Button variant="outline" size="sm" onClick={handleDownloadStandardized}>
                     {t('createDiff.downloadStandardized')}
                   </Button>
+                  <Button variant="outline" size="sm" onClick={handleGenerateJiraTable}>
+                    {t('createDiff.generateJiraTable')}
+                  </Button>
                 </div>
               </div>
               <DiffViewer content={diffResult} maxHeight="max-h-96" />
+
+              {jiraTableOutput && (
+                <div className="space-y-2 mt-4">
+                  <div className="flex items-center justify-between">
+                    <Label>{t('createDiff.jiraTableResult')}</Label>
+                    <Button variant="outline" size="sm" onClick={handleCopyJiraTable}>
+                      {t('createDiff.copyJiraTable')}
+                    </Button>
+                  </div>
+                  <textarea
+                    className="w-full min-h-[220px] rounded-md border bg-background p-3 text-sm font-mono"
+                    value={jiraTableOutput}
+                    readOnly
+                  />
+                </div>
+              )}
             </div>
           )}
         </CardContent>
