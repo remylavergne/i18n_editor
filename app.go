@@ -211,25 +211,37 @@ func (a *App) GenerateI18nDiff(repoPath, sourceBranch, targetBranch, frFilePath,
 		return I18nDiffResult{}, fmt.Errorf("repository path does not exist: %w", err)
 	}
 
-	branches := []string{sourceBranch, targetBranch}
-	for _, branch := range branches {
-		frJSON, err := getJSONAtBranch(repoPath, branch, frFilePath)
-		if err != nil {
-			return I18nDiffResult{}, err
-		}
-		nlJSON, err := getJSONAtBranch(repoPath, branch, nlFilePath)
-		if err != nil {
-			return I18nDiffResult{}, err
-		}
+	sourceFRJSON, err := getJSONAtBranch(repoPath, sourceBranch, frFilePath)
+	if err != nil {
+		return I18nDiffResult{}, err
+	}
+	sourceNLJSON, err := getJSONAtBranch(repoPath, sourceBranch, nlFilePath)
+	if err != nil {
+		return I18nDiffResult{}, err
+	}
+	targetFRJSON, err := getJSONAtBranch(repoPath, targetBranch, frFilePath)
+	if err != nil {
+		return I18nDiffResult{}, err
+	}
+	targetNLJSON, err := getJSONAtBranch(repoPath, targetBranch, nlFilePath)
+	if err != nil {
+		return I18nDiffResult{}, err
+	}
 
-		frPaths := getJSONLeafPaths(frJSON)
-		nlPaths := getJSONLeafPaths(nlJSON)
-		missingInNL := getMissingKeys(frPaths, nlPaths)
-		missingInFR := getMissingKeys(nlPaths, frPaths)
+	sourceFRPaths := getJSONLeafPaths(sourceFRJSON)
+	sourceNLPaths := getJSONLeafPaths(sourceNLJSON)
+	sourceMissingInNL := getMissingKeys(sourceFRPaths, sourceNLPaths)
+	sourceMissingInFR := getMissingKeys(sourceNLPaths, sourceFRPaths)
+	if len(sourceMissingInNL) > 0 || len(sourceMissingInFR) > 0 {
+		return I18nDiffResult{}, buildAlignmentError(sourceBranch, frFilePath, nlFilePath, sourceMissingInNL, sourceMissingInFR)
+	}
 
-		if len(missingInNL) > 0 || len(missingInFR) > 0 {
-			return I18nDiffResult{}, buildAlignmentError(branch, frFilePath, nlFilePath, missingInNL, missingInFR)
-		}
+	targetFRPaths := getJSONLeafPaths(targetFRJSON)
+	targetNLPaths := getJSONLeafPaths(targetNLJSON)
+	targetMissingInNL := getMissingKeys(targetFRPaths, targetNLPaths)
+	targetMissingInFR := getMissingKeys(targetNLPaths, targetFRPaths)
+	if len(targetMissingInNL) > 0 || len(targetMissingInFR) > 0 {
+		return I18nDiffResult{}, buildAlignmentError(targetBranch, frFilePath, nlFilePath, targetMissingInNL, targetMissingInFR)
 	}
 
 	frDiff, err := a.GitDiffBranches(repoPath, sourceBranch, targetBranch, frFilePath)
@@ -241,19 +253,12 @@ func (a *App) GenerateI18nDiff(repoPath, sourceBranch, targetBranch, frFilePath,
 		return I18nDiffResult{}, err
 	}
 
-	frChanges, err := parseDiffToStandardChangesForLanguage(frDiff, "fr")
-	if err != nil {
-		return I18nDiffResult{}, err
-	}
-	nlChanges, err := parseDiffToStandardChangesForLanguage(nlDiff, "nl")
-	if err != nil {
-		return I18nDiffResult{}, err
-	}
+	sourceFRValues := getJSONLeafValues(sourceFRJSON)
+	sourceNLValues := getJSONLeafValues(sourceNLJSON)
+	targetFRValues := getJSONLeafValues(targetFRJSON)
+	targetNLValues := getJSONLeafValues(targetNLJSON)
 
-	changes := mergeLocalizedChanges(map[string][]StandardizedDiffChange{
-		"fr": frChanges,
-		"nl": nlChanges,
-	})
+	changes := buildLocalizedChanges(sourceFRValues, sourceNLValues, targetFRValues, targetNLValues, frFilePath)
 
 	combinedDiff := strings.TrimSpace(frDiff)
 	if combinedDiff != "" {
@@ -513,6 +518,118 @@ func getJSONLeafPaths(jsonData map[string]interface{}) map[string]struct{} {
 	result := make(map[string]struct{})
 	collectLeafJSONPaths(jsonData, "", result)
 	return result
+}
+
+func valueToString(value interface{}) string {
+	if value == nil {
+		return ""
+	}
+
+	if str, ok := value.(string); ok {
+		return str
+	}
+
+	raw, err := json.Marshal(value)
+	if err == nil {
+		return string(raw)
+	}
+
+	return fmt.Sprint(value)
+}
+
+func collectLeafJSONValues(value interface{}, basePath string, out map[string]string) {
+	switch typed := value.(type) {
+	case map[string]interface{}:
+		if len(typed) == 0 {
+			if basePath != "" {
+				out[basePath] = "{}"
+			}
+			return
+		}
+
+		for key, child := range typed {
+			next := key
+			if basePath != "" {
+				next = basePath + "." + key
+			}
+			collectLeafJSONValues(child, next, out)
+		}
+	case []interface{}:
+		if basePath != "" {
+			out[basePath] = valueToString(typed)
+		}
+	default:
+		if basePath != "" {
+			out[basePath] = valueToString(typed)
+		}
+	}
+}
+
+func getJSONLeafValues(jsonData map[string]interface{}) map[string]string {
+	result := make(map[string]string)
+	collectLeafJSONValues(jsonData, "", result)
+	return result
+}
+
+func buildLocalizedChanges(sourceFR, sourceNL, targetFR, targetNL map[string]string, sourceFile string) []StandardizedDiffChange {
+	allKeysMap := make(map[string]struct{})
+	for key := range sourceFR {
+		allKeysMap[key] = struct{}{}
+	}
+	for key := range targetFR {
+		allKeysMap[key] = struct{}{}
+	}
+
+	allKeys := make([]string, 0, len(allKeysMap))
+	for key := range allKeysMap {
+		allKeys = append(allKeys, key)
+	}
+	sort.Strings(allKeys)
+
+	changes := make([]StandardizedDiffChange, 0)
+	for _, key := range allKeys {
+		oldFR, sourceExists := sourceFR[key]
+		newFR, targetExists := targetFR[key]
+		oldNL := sourceNL[key]
+		newNL := targetNL[key]
+
+		action := DiffActionChange
+		switch {
+		case !sourceExists && targetExists:
+			action = DiffActionAdd
+		case sourceExists && !targetExists:
+			action = DiffActionDelete
+		case sourceExists && targetExists:
+			if oldFR == newFR && oldNL == newNL {
+				continue
+			}
+			action = DiffActionChange
+		default:
+			continue
+		}
+
+		change := StandardizedDiffChange{
+			Action:   action,
+			Path:     key,
+			Segments: splitPath(key),
+			Key:      extractLeafKey(key),
+			Values: map[string]DiffValue{
+				"fr": {
+					OldValue: oldFR,
+					NewValue: newFR,
+				},
+				"nl": {
+					OldValue: oldNL,
+					NewValue: newNL,
+				},
+			},
+			Source: DiffChangeSource{File: sourceFile, Line: 0},
+		}
+
+		changes = append(changes, change)
+	}
+
+	return changes
 }
 
 func getJSONAtBranch(repoPath, branch, filePath string) (map[string]interface{}, error) {
