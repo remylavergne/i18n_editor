@@ -647,7 +647,7 @@ export function ApplyChanges() {
               </div>
             )}
 
-            {isAlreadyApplied || reviewMode === 'remaining' ? (
+            {isAlreadyApplied ? (
               <Button className="w-full h-12 text-base" onClick={() => {
                 if (reviewMode === 'remaining') {
                   const nextIdx = currentIndex + 1
@@ -683,18 +683,6 @@ export function ApplyChanges() {
                   {t('applyChanges.applyAll')}
                 </Button>
               </div>
-            )}
-
-            {reviewMode === 'remaining' && remainingIndices.length > 0 && (
-              <Button
-                variant="secondary"
-                className="w-full h-12 text-base"
-                onClick={handleApplyAll}
-                disabled={loading}
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                {t('applyChanges.applyAllRemaining')} ({remainingIndices.length})
-              </Button>
             )}
 
             <Button variant="outline" className="w-full h-12 text-base" onClick={handleAbort} disabled={loading}>

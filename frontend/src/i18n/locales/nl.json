@@ -112,7 +112,13 @@
     "noAppliedChanges": "Geen wijzigingen geselecteerd om toe te passen.",
     "emptyOutputError": "Geen inhoud gegenereerd op basis van de geselecteerde wijzigingen.",
     "abort": "Afbreken en origineel herstellen",
-    "abortSuccess": "Proces afgebroken. Origineel bestand hersteld vanuit back-up."
+    "abortSuccess": "Proces afgebroken. Origineel bestand hersteld vanuit back-up.",
+    "reviewRemaining": "Resterende bekijken",
+    "reviewAll": "Alles bekijken",
+    "applyAllRemaining": "Alle resterende toepassen",
+    "remainingChanges": "resterende wijzigingen",
+    "appliedByUser": "Al door u toegepast",
+    "rejectedByUser": "Al door u afgewezen"
   },
   "errors": {
     "fillAllFields": "Vul alle velden in",

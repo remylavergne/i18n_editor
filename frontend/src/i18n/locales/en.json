@@ -112,7 +112,13 @@
     "noAppliedChanges": "No changes selected for apply.",
     "emptyOutputError": "No content generated from selected changes.",
     "abort": "Abort and restore original",
-    "abortSuccess": "Process aborted. Original file restored from backup."
+    "abortSuccess": "Process aborted. Original file restored from backup.",
+    "reviewRemaining": "Review Remaining",
+    "reviewAll": "Review All",
+    "applyAllRemaining": "Apply All Remaining",
+    "remainingChanges": "remaining changes",
+    "appliedByUser": "Already applied by you",
+    "rejectedByUser": "Already rejected by you"
   },
   "errors": {
     "fillAllFields": "Please fill in all fields",
