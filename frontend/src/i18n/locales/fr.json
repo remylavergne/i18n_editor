@@ -117,7 +117,11 @@
   "errors": {
     "fillAllFields": "Veuillez remplir tous les champs",
     "failedToGetWorkingDir": "Échec de la récupération du répertoire de travail",
-    "gitError": "Erreur git"
+    "gitError": "Erreur git",
+    "unexpectedTitle": "Erreur inattendue",
+    "resetApp": "Reinitialiser l'application",
+    "showDetails": "Afficher les details",
+    "hideDetails": "Masquer les details"
   },
   "language": {
     "en": "Anglais",

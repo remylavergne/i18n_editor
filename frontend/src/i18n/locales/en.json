@@ -117,7 +117,11 @@
   "errors": {
     "fillAllFields": "Please fill in all fields",
     "failedToGetWorkingDir": "Failed to get working directory",
-    "gitError": "Git error"
+    "gitError": "Git error",
+    "unexpectedTitle": "Unexpected Error",
+    "resetApp": "Reset Application",
+    "showDetails": "Show Details",
+    "hideDetails": "Hide Details"
   },
   "language": {
     "en": "English",

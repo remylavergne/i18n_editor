@@ -117,7 +117,11 @@
   "errors": {
     "fillAllFields": "Vul alle velden in",
     "failedToGetWorkingDir": "Kan werkmap niet ophalen",
-    "gitError": "Git fout"
+    "gitError": "Git fout",
+    "unexpectedTitle": "Onverwachte fout",
+    "resetApp": "Toepassing resetten",
+    "showDetails": "Details tonen",
+    "hideDetails": "Details verbergen"
   },
   "language": {
     "en": "Engels",

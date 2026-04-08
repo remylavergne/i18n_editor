@@ -55,19 +55,24 @@ export function CreateDiff() {
     }
   }
 
-  const downloadBlob = (content: string, type: string, filename: string) => {
-    const blob = new Blob([content], { type })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = filename
-    link.style.display = 'none'
-    document.body.appendChild(link)
-    link.click()
-    setTimeout(() => {
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
-    }, 100)
+  const downloadBlob = (content: string, mimeType: string, filename: string) => {
+    try {
+      const blob = new Blob([content], { type: mimeType })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      link.rel = 'noopener noreferrer'
+      document.body.appendChild(link)
+      link.click()
+      setTimeout(() => {
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+      }, 200)
+    } catch (err) {
+      console.error('Download failed:', err)
+      alert('Download failed: ' + String(err))
+    }
   }
 
   const getTimestamp = () => {
@@ -82,12 +87,20 @@ export function CreateDiff() {
   }
 
   const handleDownloadPatch = () => {
-    if (!diffResult) return
-    downloadBlob(diffResult, 'text/x-diff', `${getBaseFilename()}.patch`)
+    console.log('handleDownloadPatch called, diffResult length:', diffResult?.length)
+    if (!diffResult) {
+      alert('No diff result to download')
+      return
+    }
+    downloadBlob(diffResult, 'text/plain', `${getBaseFilename()}.patch`)
   }
 
   const handleDownloadStandardized = () => {
-    if (!diffResult) return
+    console.log('handleDownloadStandardized called, changes count:', standardizedChanges?.length)
+    if (!diffResult) {
+      alert('No diff result to download')
+      return
+    }
     const exportPayload = JSON.stringify(standardizedChanges, null, 2)
     downloadBlob(exportPayload, 'application/json', `${getBaseFilename()}.json`)
   }
