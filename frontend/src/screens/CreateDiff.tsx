@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { FileDiff, GitBranch, FolderOpen, AlertCircle } from "lucide-react"
-import { GitDiffBranches, OpenDirectoryDialog, ParseDiffToStandardChanges } from "../../wailsjs/go/main/App"
+import { GitDiffBranches, OpenDirectoryDialog, ParseDiffToStandardChanges, SaveFileDialog, SaveTextFile } from "../../wailsjs/go/main/App"
 import { main } from "../../wailsjs/go/models"
 import { DiffViewer } from "@/components/DiffViewer"
 
@@ -44,31 +44,33 @@ export function CreateDiff() {
 
     try {
       const result = await GitDiffBranches(repoPath, sourceBranch, targetBranch, filePath)
+      console.log('GitDiffBranches result type:', typeof result, 'value:', result)
+      if (typeof result !== 'string') {
+        throw new Error(`Expected string from GitDiffBranches, got ${typeof result}: ${JSON.stringify(result)}`)
+      }
       setDiffResult(result)
       const changes = await ParseDiffToStandardChanges(result)
       setStandardizedChanges(changes)
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err)
+      console.error('GitDiffBranches error:', err)
       setError(errorMessage)
+      setDiffResult('')
     } finally {
       setLoading(false)
     }
   }
 
-  const downloadBlob = (content: string, mimeType: string, filename: string) => {
+  const downloadBlob = async (content: string, filename: string) => {
     try {
-      const blob = new Blob([content], { type: mimeType })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = filename
-      link.rel = 'noopener noreferrer'
-      document.body.appendChild(link)
-      link.click()
-      setTimeout(() => {
-        document.body.removeChild(link)
-        URL.revokeObjectURL(url)
-      }, 200)
+      const filePath = await SaveFileDialog("Save File", filename, [
+        { Name: "All Files", Patterns: ["*"] }
+      ])
+      if (!filePath) {
+        console.log("Save cancelled by user")
+        return
+      }
+      await SaveTextFile(filePath, content)
     } catch (err) {
       console.error('Download failed:', err)
       alert('Download failed: ' + String(err))
@@ -86,23 +88,23 @@ export function CreateDiff() {
     return `diff-${sourceBranch}-${targetBranch}-${fileName}-${getTimestamp()}`
   }
 
-  const handleDownloadPatch = () => {
-    console.log('handleDownloadPatch called, diffResult length:', diffResult?.length)
-    if (!diffResult) {
+  const handleDownloadPatch = async () => {
+    console.log('handleDownloadPatch called, diffResult:', diffResult)
+    if (!diffResult || typeof diffResult !== 'string' || diffResult.length <= 0) {
       alert('No diff result to download')
       return
     }
-    downloadBlob(diffResult, 'text/plain', `${getBaseFilename()}.patch`)
+    await downloadBlob(diffResult, `${getBaseFilename()}.patch`)
   }
 
-  const handleDownloadStandardized = () => {
+  const handleDownloadStandardized = async () => {
     console.log('handleDownloadStandardized called, changes count:', standardizedChanges?.length)
-    if (!diffResult) {
+    if (!diffResult || typeof diffResult !== 'string' || diffResult.length <= 0) {
       alert('No diff result to download')
       return
     }
     const exportPayload = JSON.stringify(standardizedChanges, null, 2)
-    downloadBlob(exportPayload, 'application/json', `${getBaseFilename()}.json`)
+    await downloadBlob(exportPayload, `${getBaseFilename()}.json`)
   }
 
   return (
