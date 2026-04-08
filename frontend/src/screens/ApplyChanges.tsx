@@ -404,7 +404,7 @@ export function ApplyChanges() {
                 <Input
                   value={targetFile}
                   placeholder={t('applyChanges.selectJsonFile')}
-                  readOnly
+                  onChange={(e) => setTargetFile(e.target.value)}
                   className="flex-1 h-12 text-base"
                 />
                 <Button variant="outline" onClick={handleSelectTargetFile} className="h-12 px-5 text-base">
@@ -420,7 +420,7 @@ export function ApplyChanges() {
                 <Input
                   value={changesFile}
                   placeholder={t('applyChanges.selectChangesFile')}
-                  readOnly
+                  onChange={(e) => setChangesFile(e.target.value)}
                   className="flex-1 h-12 text-base"
                 />
                 <Button variant="outline" onClick={handleSelectChangesFile} className="h-12 px-5 text-base">

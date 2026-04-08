@@ -273,7 +273,7 @@ export function EditAppliedChanges() {
           <div className="space-y-2">
             <Label className="text-base">{t('editApplied.targetFile')}</Label>
             <div className="flex gap-3">
-              <Input className="h-12 text-base" readOnly value={targetFile} placeholder={t('editApplied.selectJsonFile')} />
+              <Input className="h-12 text-base" value={targetFile} onChange={(e) => setTargetFile(e.target.value)} placeholder={t('editApplied.selectJsonFile')} />
               <Button variant="outline" className="h-12 px-5 text-base" onClick={handleSelectTargetFile}>
                 <FolderOpen className="h-4 w-4 mr-2" />
                 {t('createDiff.browse')}
@@ -284,7 +284,7 @@ export function EditAppliedChanges() {
           <div className="space-y-2">
             <Label className="text-base">{t('editApplied.changesFile')}</Label>
             <div className="flex gap-3">
-              <Input className="h-12 text-base" readOnly value={changesFile} placeholder={t('editApplied.selectChangesFile')} />
+              <Input className="h-12 text-base" value={changesFile} onChange={(e) => setChangesFile(e.target.value)} placeholder={t('editApplied.selectChangesFile')} />
               <Button variant="outline" className="h-12 px-5 text-base" onClick={handleSelectChangesFile}>
                 <FolderOpen className="h-4 w-4 mr-2" />
                 {t('createDiff.browse')}

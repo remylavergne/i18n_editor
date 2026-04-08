@@ -63,9 +63,7 @@ export function CreateDiff() {
 
   const downloadBlob = async (content: string, filename: string) => {
     try {
-      const filePath = await SaveFileDialog("Save File", filename, [
-        { Name: "All Files", Patterns: ["*"] }
-      ])
+      const filePath = await SaveFileDialog("Save File", filename)
       if (!filePath) {
         console.log("Save cancelled by user")
         return
