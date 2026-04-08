@@ -128,8 +128,14 @@ export function CreateDiff() {
   }
 
   const formatActionForTable = (action: string) => {
+    if (action === 'add') {
+      return '🟢 + add'
+    }
     if (action === 'change') {
-      return 'modified'
+      return '✏️ modified'
+    }
+    if (action === 'delete') {
+      return '🔴 delete'
     }
     return action
   }
@@ -162,6 +168,7 @@ export function CreateDiff() {
       'Action',
       'Traduction FR',
       'Traduction NL',
+      'Traduction DE',
       'Limitations techniques eventuelles',
       'transversalite',
     ].join('\t')
@@ -170,7 +177,7 @@ export function CreateDiff() {
       const path = escapeTableCell(change.path || '')
       const action = escapeTableCell(formatActionForTable(change.action || ''))
       const frValue = escapeTableCell(getFrValueForAction(change))
-      return [path, action, frValue, '', '', ''].join('\t')
+      return [path, action, frValue, '', '', '', ''].join('\t')
     })
 
     return [header, ...rows].join('\n')
@@ -196,10 +203,10 @@ export function CreateDiff() {
       const path = escapeHtml(change.path || '')
       const action = escapeHtml(formatActionForTable(change.action || ''))
       const frValue = escapeHtml(getFrValueForAction(change))
-      return `<tr><td>${path}</td><td>${action}</td><td>${frValue}</td><td></td><td></td><td></td></tr>`
+      return `<tr><td>${path}</td><td>${action}</td><td>${frValue}</td><td></td><td></td><td></td><td></td></tr>`
     }).join('')
 
-    return `<table><thead><tr><th>Path</th><th>Action</th><th>Traduction FR</th><th>Traduction NL</th><th>Limitations techniques eventuelles</th><th>transversalite</th></tr></thead><tbody>${cells}</tbody></table>`
+    return `<table><thead><tr><th>Path</th><th>Action</th><th>Traduction FR</th><th>Traduction NL</th><th>Traduction DE</th><th>Limitations techniques eventuelles</th><th>transversalite</th></tr></thead><tbody>${cells}</tbody></table>`
   }
 
   const copyJiraTable = async (textTable: string, htmlTable: string) => {
