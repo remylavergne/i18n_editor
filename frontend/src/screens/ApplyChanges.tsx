@@ -554,7 +554,29 @@ export function ApplyChanges() {
     const remainingIndices = getRemainingIndices()
     const displayIndex = getDisplayIndex(remainingIndices)
     if (displayIndex < 0 || !changes[displayIndex]) {
-      return null
+      return (
+        <div className="container mx-auto py-10 max-w-4xl px-4">
+          <Card className="shadow-sm border-2">
+            <CardHeader className="space-y-3">
+              <CardTitle className="flex items-center gap-3 text-2xl">
+                <CheckCircle className="h-7 w-7 text-green-600" />
+                {t('applyChanges.complete')}
+              </CardTitle>
+              <CardDescription className="text-base">
+                {t('applyChanges.alreadyAppliedMessage')}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="rounded-md border p-3 text-sm text-muted-foreground text-center">
+                {appliedChanges.length} {t('applyChanges.applied')} | {rejectedChanges.length} {t('applyChanges.rejected')} | {alreadyApplied.filter(Boolean).length} {t('applyChanges.alreadyApplied')}
+              </div>
+              <Button variant="outline" className="w-full h-12 text-base" onClick={() => void handleReset()}>
+                {t('applyChanges.startOver')}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )
     }
     const currentChange = changes[displayIndex]
     const currentStandardized = standardizedChanges[displayIndex]
