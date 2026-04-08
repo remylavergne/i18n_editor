@@ -1,0 +1,15 @@
+{
+  "HOME": {
+    "TITLE": "Bienvenue",
+    "SUBTITLE": "Edition des traductions"
+  },
+  "COMMON": {
+    "SAVE": "Sauvegarder",
+    "CANCEL": "Annuler"
+  },
+  "PROFILE": {
+    "HEADER": {
+      "TITLE": "Mon profil"
+    }
+  }
+}

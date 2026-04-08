@@ -3,7 +3,25 @@
     "title": "i18n Editor",
     "createDiff": "Create Diff",
     "applyChanges": "Apply Changes",
-    "editApplied": "Edit Applied"
+    "editApplied": "Edit Applied",
+    "i18nChecks": "I18n Checks"
+  },
+  "i18nChecks": {
+    "title": "I18n Keys Check",
+    "description": "Compare two i18n JSON files and find missing keys in each file.",
+    "referenceHintTitle": "Reference",
+    "referenceHint": "FR is usually the reference file, but checks are computed both ways.",
+    "frFile": "FR JSON File",
+    "nlFile": "NL JSON File",
+    "selectFrFile": "Select FR JSON file",
+    "selectNlFile": "Select NL JSON file",
+    "runChecks": "Run key checks",
+    "checking": "Checking...",
+    "missingInNl": "Missing in NL (FR -> NL)",
+    "missingInFr": "Missing in FR (NL -> FR)",
+    "missingCount": "{{count}} missing key(s)",
+    "noMissing": "No missing keys",
+    "selectFileError": "Failed to select file"
   },
   "editApplied": {
     "title": "Edit Applied Labels",

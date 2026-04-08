@@ -5,11 +5,12 @@ import { LanguageSelector } from './components/LanguageSelector'
 import { CreateDiff } from './screens/CreateDiff'
 import { ApplyChanges } from './screens/ApplyChanges'
 import { EditAppliedChanges } from './screens/EditAppliedChanges'
-import { FileDiff, FileSpreadsheet, PencilLine, AlertTriangle } from 'lucide-react'
+import { I18nChecks } from './screens/I18nChecks'
+import { FileDiff, FileSpreadsheet, PencilLine, AlertTriangle, Languages } from 'lucide-react'
 
 import './i18n'
 
-type Screen = 'create-diff' | 'apply-changes' | 'edit-applied'
+type Screen = 'create-diff' | 'apply-changes' | 'edit-applied' | 'i18n-checks'
 
 interface ErrorInfo {
   message: string
@@ -98,6 +99,14 @@ function App() {
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold mr-6">{t('app.title')}</h1>
               <Button
+                variant={currentScreen === 'i18n-checks' ? 'default' : 'ghost'}
+                onClick={() => setCurrentScreen('i18n-checks')}
+                className="gap-2"
+              >
+                <Languages className="h-4 w-4" />
+                {t('app.i18nChecks')}
+              </Button>
+              <Button
                 variant={currentScreen === 'create-diff' ? 'default' : 'ghost'}
                 onClick={() => setCurrentScreen('create-diff')}
                 className="gap-2"
@@ -125,11 +134,12 @@ function App() {
             <LanguageSelector />
           </div>
         </nav>
-        
+
         <main>
           {currentScreen === 'create-diff' && <CreateDiff />}
           {currentScreen === 'apply-changes' && <ApplyChanges />}
           {currentScreen === 'edit-applied' && <EditAppliedChanges />}
+          {currentScreen === 'i18n-checks' && <I18nChecks />}
         </main>
       </div>
     </ErrorBoundary>

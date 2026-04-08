@@ -3,7 +3,25 @@
     "title": "i18n Editor",
     "createDiff": "Diff maken",
     "applyChanges": "Wijzigingen toepassen",
-    "editApplied": "Toegepaste labels bewerken"
+    "editApplied": "Toegepaste labels bewerken",
+    "i18nChecks": "I18n Controle"
+  },
+  "i18nChecks": {
+    "title": "I18n sleutelcontrole",
+    "description": "Vergelijk twee i18n JSON-bestanden en vind ontbrekende sleutels in elk bestand.",
+    "referenceHintTitle": "Referentie",
+    "referenceHint": "FR is meestal het referentiebestand, maar controle gebeurt in beide richtingen.",
+    "frFile": "FR JSON-bestand",
+    "nlFile": "NL JSON-bestand",
+    "selectFrFile": "Selecteer FR JSON-bestand",
+    "selectNlFile": "Selecteer NL JSON-bestand",
+    "runChecks": "Sleutelcontrole uitvoeren",
+    "checking": "Controleren...",
+    "missingInNl": "Ontbreekt in NL (FR -> NL)",
+    "missingInFr": "Ontbreekt in FR (NL -> FR)",
+    "missingCount": "{{count}} ontbrekende sleutel(s)",
+    "noMissing": "Geen ontbrekende sleutels",
+    "selectFileError": "Bestand selecteren mislukt"
   },
   "editApplied": {
     "title": "Toegepaste labels bewerken",

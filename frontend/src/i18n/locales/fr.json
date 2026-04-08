@@ -3,7 +3,25 @@
     "title": "Éditeur i18n",
     "createDiff": "Créer un diff",
     "applyChanges": "Appliquer les modifications",
-    "editApplied": "Modifier applique"
+    "editApplied": "Modifier applique",
+    "i18nChecks": "Verification i18n"
+  },
+  "i18nChecks": {
+    "title": "Verification des cles i18n",
+    "description": "Comparez deux fichiers JSON i18n et trouvez les cles manquantes dans chaque fichier.",
+    "referenceHintTitle": "Reference",
+    "referenceHint": "FR est generalement le fichier de reference, mais la verification est calculee dans les deux sens.",
+    "frFile": "Fichier JSON FR",
+    "nlFile": "Fichier JSON NL",
+    "selectFrFile": "Selectionner le fichier JSON FR",
+    "selectNlFile": "Selectionner le fichier JSON NL",
+    "runChecks": "Lancer la verification des cles",
+    "checking": "Verification...",
+    "missingInNl": "Manquantes dans NL (FR -> NL)",
+    "missingInFr": "Manquantes dans FR (NL -> FR)",
+    "missingCount": "{{count}} cle(s) manquante(s)",
+    "noMissing": "Aucune cle manquante",
+    "selectFileError": "Echec de la selection du fichier"
   },
   "editApplied": {
     "title": "Modifier les libelles appliques",
