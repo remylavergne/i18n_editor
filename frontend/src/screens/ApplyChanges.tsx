@@ -74,8 +74,8 @@ export function ApplyChanges() {
     return items
       .map((item) => {
         const langValue = getLanguageValue(item, language)
-        const oldValue = langValue?.oldValue ?? item.oldValue ?? ''
-        const newValue = langValue?.newValue ?? item.newValue ?? ''
+        const oldValue = langValue?.oldValue ?? ''
+        const newValue = langValue?.newValue ?? ''
 
         const mapped: DiffChange = {
           type: '',
@@ -746,11 +746,29 @@ export function ApplyChanges() {
                 </div>
               )}
 
+              {currentChange.type !== 'add' && (
+                <div>
+                  <p className="text-sm font-medium mb-1">{t('applyChanges.currentValue')} (NL)</p>
+                  <div className="rounded-md border bg-background p-3 text-base text-red-600 break-words">
+                    {currentStandardized?.values?.nl?.oldValue || '(empty)'}
+                  </div>
+                </div>
+              )}
+
               {currentChange.type !== 'delete' && (
                 <div>
                   <p className="text-sm font-medium mb-1">{t('applyChanges.newValue')}</p>
                   <div className="rounded-md border bg-background p-3 text-base text-green-700 break-words">
                     {currentChange.newValue || '(empty)'}
+                  </div>
+                </div>
+              )}
+
+              {currentChange.type !== 'delete' && (
+                <div>
+                  <p className="text-sm font-medium mb-1">{t('applyChanges.newValue')} (NL)</p>
+                  <div className="rounded-md border bg-background p-3 text-base text-green-700 break-words">
+                    {currentStandardized?.values?.nl?.newValue || '(empty)'}
                   </div>
                 </div>
               )}
@@ -762,6 +780,18 @@ export function ApplyChanges() {
                     placeholder={currentChange.newValue}
                     value={overrides[currentChange.key] || ''}
                     onChange={(e) => handleOverrideChange(e.target.value)}
+                    className="h-12 text-base"
+                  />
+                </div>
+              )}
+
+              {(currentChange.type === 'add' || currentChange.type === 'modify') && !isAlreadyApplied && (
+                <div className="space-y-2">
+                  <Label className="text-base">{t('applyChanges.overrideValue')} (NL, {t('applyChanges.optional')})</Label>
+                  <Input
+                    placeholder={currentStandardized?.values?.nl?.newValue || ''}
+                    value={overrides[`${currentChange.key}__nl`] || ''}
+                    onChange={(e) => setOverrides({ ...overrides, [`${currentChange.key}__nl`]: e.target.value })}
                     className="h-12 text-base"
                   />
                 </div>

@@ -146,17 +146,14 @@ export function CreateDiff() {
 
   const getFrValueForAction = (change: main.StandardizedDiffChange) => {
     const frValues = change.values?.fr
-    if (frValues) {
-      if (change.action === 'delete') {
-        return frValues.oldValue || ''
-      }
-      return frValues.newValue || ''
+    if (!frValues) {
+      return ''
     }
 
     if (change.action === 'delete') {
-      return change.oldValue || ''
+      return frValues.oldValue || ''
     }
-    return change.newValue || ''
+    return frValues.newValue || ''
   }
 
   const getNlValueForAction = (change: main.StandardizedDiffChange) => {

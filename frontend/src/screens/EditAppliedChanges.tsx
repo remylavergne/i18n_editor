@@ -117,12 +117,13 @@ export function EditAppliedChanges() {
 
       const compatibilityChanges: LegacyDiffChange[] = standardized
         .map((item) => {
+          const frValues = item.values?.fr
           if (item.action === 'add') {
             return {
               type: 'add',
               key: item.path,
-              oldValue: item.oldValue || '',
-              newValue: item.newValue || '',
+              oldValue: frValues?.oldValue || '',
+              newValue: frValues?.newValue || '',
               line: item.source?.line || 0,
             }
           }
@@ -131,8 +132,8 @@ export function EditAppliedChanges() {
             return {
               type: 'modify',
               key: item.path,
-              oldValue: item.oldValue || '',
-              newValue: item.newValue || '',
+              oldValue: frValues?.oldValue || '',
+              newValue: frValues?.newValue || '',
               line: item.source?.line || 0,
             }
           }
@@ -141,7 +142,7 @@ export function EditAppliedChanges() {
             return {
               type: 'delete',
               key: item.path,
-              oldValue: item.oldValue || '',
+              oldValue: frValues?.oldValue || '',
               newValue: '',
               line: item.source?.line || 0,
             }

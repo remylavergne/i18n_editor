@@ -241,11 +241,11 @@ func (a *App) GenerateI18nDiff(repoPath, sourceBranch, targetBranch, frFilePath,
 		return I18nDiffResult{}, err
 	}
 
-	frChanges, err := a.ParseDiffToStandardChanges(frDiff)
+	frChanges, err := parseDiffToStandardChangesForLanguage(frDiff, "fr")
 	if err != nil {
 		return I18nDiffResult{}, err
 	}
-	nlChanges, err := a.ParseDiffToStandardChanges(nlDiff)
+	nlChanges, err := parseDiffToStandardChangesForLanguage(nlDiff, "nl")
 	if err != nil {
 		return I18nDiffResult{}, err
 	}
@@ -291,8 +291,6 @@ type StandardizedDiffChange struct {
 	Path     string                 `json:"path"`
 	Segments []string               `json:"segments,omitempty"`
 	Key      string                 `json:"key"`
-	OldValue string                 `json:"oldValue,omitempty"`
-	NewValue string                 `json:"newValue,omitempty"`
 	Values   map[string]DiffValue   `json:"values,omitempty"`
 	Context  *DiffChangeContext     `json:"context,omitempty"`
 	Source   DiffChangeSource       `json:"source"`
@@ -597,11 +595,12 @@ func mergeLocalizedChanges(changesByLang map[string][]StandardizedDiffChange) []
 				order = append(order, key)
 			}
 
-			existing.Values[lang] = DiffValue{OldValue: change.OldValue, NewValue: change.NewValue}
+			if existing.Values == nil {
+				existing.Values = map[string]DiffValue{}
+			}
 
-			if lang == "fr" {
-				existing.OldValue = change.OldValue
-				existing.NewValue = change.NewValue
+			if value, ok := change.Values[lang]; ok {
+				existing.Values[lang] = value
 			}
 
 			if existing.Source.Line == 0 || (change.Source.Line > 0 && change.Source.Line < existing.Source.Line) {
@@ -627,7 +626,7 @@ func mergeLocalizedChanges(changesByLang map[string][]StandardizedDiffChange) []
 	return result
 }
 
-func (a *App) ParseDiffToStandardChanges(diffContent string) ([]StandardizedDiffChange, error) {
+func parseDiffToStandardChangesForLanguage(diffContent, language string) ([]StandardizedDiffChange, error) {
 	oldEntries := extractDiffSideEntries(diffContent, '-')
 	newEntries := extractDiffSideEntries(diffContent, '+')
 	changes := make([]StandardizedDiffChange, 0, len(oldEntries)+len(newEntries))
@@ -639,8 +638,12 @@ func (a *App) ParseDiffToStandardChanges(diffContent string) ([]StandardizedDiff
 				Path:     path,
 				Segments: splitPath(path),
 				Key:      extractLeafKey(path),
-				OldValue: oldEntry.Value,
-				NewValue: newEntry.Value,
+				Values: map[string]DiffValue{
+					language: DiffValue{
+						OldValue: oldEntry.Value,
+						NewValue: newEntry.Value,
+					},
+				},
 				Source: DiffChangeSource{
 					File: newEntry.File,
 					Hunk: newEntry.Hunk,
@@ -655,7 +658,11 @@ func (a *App) ParseDiffToStandardChanges(diffContent string) ([]StandardizedDiff
 			Path:     path,
 			Segments: splitPath(path),
 			Key:      extractLeafKey(path),
-			OldValue: oldEntry.Value,
+			Values: map[string]DiffValue{
+				language: DiffValue{
+					OldValue: oldEntry.Value,
+				},
+			},
 			Source: DiffChangeSource{
 				File: oldEntry.File,
 				Hunk: oldEntry.Hunk,
@@ -674,7 +681,11 @@ func (a *App) ParseDiffToStandardChanges(diffContent string) ([]StandardizedDiff
 			Path:     path,
 			Segments: splitPath(path),
 			Key:      extractLeafKey(path),
-			NewValue: newEntry.Value,
+			Values: map[string]DiffValue{
+				language: DiffValue{
+					NewValue: newEntry.Value,
+				},
+			},
 			Source: DiffChangeSource{
 				File: newEntry.File,
 				Hunk: newEntry.Hunk,
@@ -693,6 +704,17 @@ func (a *App) ParseDiffToStandardChanges(diffContent string) ([]StandardizedDiff
 	return changes, nil
 }
 
+func (a *App) ParseDiffToStandardChanges(diffContent string) ([]StandardizedDiffChange, error) {
+	return parseDiffToStandardChangesForLanguage(diffContent, "fr")
+}
+
+func getValueForLanguage(change StandardizedDiffChange, language string) DiffValue {
+	if change.Values == nil {
+		return DiffValue{}
+	}
+	return change.Values[language]
+}
+
 func (a *App) ParseDiffFile(diffContent string) ([]DiffChange, error) {
 	standardChanges, err := a.ParseDiffToStandardChanges(diffContent)
 	if err != nil {
@@ -701,6 +723,7 @@ func (a *App) ParseDiffFile(diffContent string) ([]DiffChange, error) {
 
 	changes := make([]DiffChange, 0, len(standardChanges))
 	for _, change := range standardChanges {
+		value := getValueForLanguage(change, "fr")
 		mapped := DiffChange{
 			Key:  change.Path,
 			Line: change.Source.Line,
@@ -709,14 +732,14 @@ func (a *App) ParseDiffFile(diffContent string) ([]DiffChange, error) {
 		switch change.Action {
 		case DiffActionAdd:
 			mapped.Type = "add"
-			mapped.NewValue = change.NewValue
+			mapped.NewValue = value.NewValue
 		case DiffActionDelete:
 			mapped.Type = "delete"
-			mapped.OldValue = change.OldValue
+			mapped.OldValue = value.OldValue
 		case DiffActionChange:
 			mapped.Type = "modify"
-			mapped.OldValue = change.OldValue
-			mapped.NewValue = change.NewValue
+			mapped.OldValue = value.OldValue
+			mapped.NewValue = value.NewValue
 		default:
 			continue
 		}

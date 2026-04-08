@@ -71,8 +71,6 @@ export namespace main {
 	    path: string;
 	    segments?: string[];
 	    key: string;
-	    oldValue?: string;
-	    newValue?: string;
 	    values?: Record<string, DiffValue>;
 	    context?: DiffChangeContext;
 	    source: DiffChangeSource;
@@ -87,8 +85,6 @@ export namespace main {
 	        this.path = source["path"];
 	        this.segments = source["segments"];
 	        this.key = source["key"];
-	        this.oldValue = source["oldValue"];
-	        this.newValue = source["newValue"];
 	        this.values = this.convertValues(source["values"], DiffValue, true);
 	        this.context = this.convertValues(source["context"], DiffChangeContext);
 	        this.source = this.convertValues(source["source"], DiffChangeSource);
