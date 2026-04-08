@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"sort"
 	"strings"
@@ -564,6 +565,20 @@ func getNestedValue(m map[string]interface{}, key string) (interface{}, bool) {
 	return val, exists
 }
 
+func parseChangeValue(raw string) interface{} {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return ""
+	}
+
+	var parsed interface{}
+	if err := json.Unmarshal([]byte(trimmed), &parsed); err == nil {
+		return parsed
+	}
+
+	return raw
+}
+
 func (a *App) ApplyChangeToJson(filePath string, change DiffChange, overrideValue string) error {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
@@ -580,10 +595,11 @@ func (a *App) ApplyChangeToJson(filePath string, change DiffChange, overrideValu
 	if overrideValue != "" {
 		newValue = overrideValue
 	}
+	parsedNewValue := parseChangeValue(newValue)
 
 	switch change.Type {
 	case "add", "modify":
-		setNestedValue(result, change.Key, newValue)
+		setNestedValue(result, change.Key, parsedNewValue)
 	case "delete":
 		setNestedValue(result, change.Key, nil)
 	}
@@ -632,10 +648,11 @@ func (a *App) SaveAppliedChanges(baseFilePath string, changes []DiffChange, over
 		if override, exists := overrides[change.Key]; exists && override != "" {
 			newValue = override
 		}
+		parsedNewValue := parseChangeValue(newValue)
 
 		switch change.Type {
 		case "add", "modify":
-			setNestedValue(result, change.Key, newValue)
+			setNestedValue(result, change.Key, parsedNewValue)
 		case "delete":
 			setNestedValue(result, change.Key, nil)
 		}
@@ -671,10 +688,11 @@ func (a *App) GetAppliedChangesAsJson(baseFilePath string, changes []DiffChange,
 		if override, exists := overrides[change.Key]; exists && override != "" {
 			newValue = override
 		}
+		parsedNewValue := parseChangeValue(newValue)
 
 		switch change.Type {
 		case "add", "modify":
-			setNestedValue(result, change.Key, newValue)
+			setNestedValue(result, change.Key, parsedNewValue)
 		case "delete":
 			setNestedValue(result, change.Key, nil)
 		}
@@ -703,21 +721,20 @@ func (a *App) CheckAlreadyApplied(filePath string, changes []DiffChange) ([]bool
 	results := make([]bool, len(changes))
 	for i, change := range changes {
 		currentValue, exists := getNestedValue(jsonData, change.Key)
+		expectedOldValue := parseChangeValue(change.OldValue)
+		expectedNewValue := parseChangeValue(change.NewValue)
 
 		switch change.Type {
 		case "add":
-			if exists {
+			if exists && reflect.DeepEqual(currentValue, expectedNewValue) {
 				results[i] = true
 			}
 		case "modify":
-			if exists {
-				currentStr, ok := currentValue.(string)
-				if ok && currentStr == change.NewValue {
-					results[i] = true
-				}
+			if exists && reflect.DeepEqual(currentValue, expectedNewValue) {
+				results[i] = true
 			}
 		case "delete":
-			if !exists {
+			if !exists || !reflect.DeepEqual(currentValue, expectedOldValue) {
 				results[i] = true
 			}
 		}

@@ -195,12 +195,16 @@ export function ApplyChanges() {
     }
   }
 
-  const getRemainingIndices = () => {
+  const computeRemainingIndices = (appliedStatus: boolean[], applied: DiffChange[], rejected: DiffChange[]) => {
     return changes
       .map((_, i) => i)
       .filter((i) => {
-        return !alreadyApplied[i] && !appliedChanges.some((a) => a.key === changes[i].key) && !rejectedChanges.some((r) => r.key === changes[i].key)
+        return !appliedStatus[i] && !applied.some((a) => a.key === changes[i].key) && !rejected.some((r) => r.key === changes[i].key)
       })
+  }
+
+  const getRemainingIndices = () => {
+    return computeRemainingIndices(alreadyApplied, appliedChanges, rejectedChanges)
   }
 
   const getDisplayIndex = (remainingIndices: number[]) => {
@@ -239,10 +243,13 @@ export function ApplyChanges() {
           line: change.line,
         }), newValue)
 
-        setAppliedChanges([...appliedChanges, change])
+        const updatedAppliedChanges = [...appliedChanges, change]
+        const refreshedAlreadyApplied = await CheckAlreadyApplied(targetFile, changes)
+        setAppliedChanges(updatedAppliedChanges)
+        setAlreadyApplied(refreshedAlreadyApplied)
 
         if (reviewMode === 'remaining') {
-          const remainingAfterApply = remainingIndices.filter((index) => index !== displayIndex)
+          const remainingAfterApply = computeRemainingIndices(refreshedAlreadyApplied, updatedAppliedChanges, rejectedChanges)
           if (remainingAfterApply.length === 0) {
             setStep('complete')
           } else if (currentIndex >= remainingAfterApply.length) {
@@ -338,7 +345,10 @@ export function ApplyChanges() {
         appliedNow.push(change)
       }
 
-      setAppliedChanges([...appliedChanges, ...appliedNow])
+      const updatedAppliedChanges = [...appliedChanges, ...appliedNow]
+      const refreshedAlreadyApplied = await CheckAlreadyApplied(targetFile, changes)
+      setAppliedChanges(updatedAppliedChanges)
+      setAlreadyApplied(refreshedAlreadyApplied)
       setStep('complete')
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err)
