@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { FileSpreadsheet, FolderOpen, AlertCircle, CheckCircle, Save, X, ArrowRight } from "lucide-react"
-import { CheckAlreadyApplied, CreateBackupFile, DeleteFile, GetAppliedChangesAsJson, OpenFileDialog, ReadTextFile, RestoreFileFromBackup, SaveAppliedChanges, SaveFileDialog, SaveTextFile } from "../../wailsjs/go/main/App"
+import { ApplyChangeToJson, CheckAlreadyApplied, CreateBackupFile, DeleteFile, GetAppliedChangesAsJson, OpenFileDialog, ReadTextFile, RestoreFileFromBackup, SaveAppliedChanges, SaveFileDialog, SaveTextFile } from "../../wailsjs/go/main/App"
 import { main } from "../../wailsjs/go/models"
 
 interface DiffChange {
@@ -223,12 +223,32 @@ export function ApplyChanges() {
           setBackupFilePath(createdBackupPath)
         }
 
-        const nextIdx = currentChangeIndex + 1
-        setAppliedChanges([...appliedChanges, changes[currentChangeIndex]])
-        if (nextIdx < changes.length) {
-          setCurrentChangeIndex(nextIdx)
+        const change = changes[currentChangeIndex]
+        const overrideValue = overrides[change.key]
+        const newValue = overrideValue || change.newValue
+
+        await ApplyChangeToJson(targetFile, main.DiffChange.createFrom({
+          type: change.type,
+          key: change.key,
+          oldValue: change.oldValue,
+          newValue: newValue,
+          line: change.line,
+        }), newValue)
+
+        const updatedRemaining = getRemainingIndices()
+        setAppliedChanges([...appliedChanges, change])
+
+        if (reviewMode === 'remaining') {
+          if (currentIndex >= updatedRemaining.length - 1) {
+            setStep('complete')
+          }
         } else {
-          setStep('complete')
+          const nextIdx = currentChangeIndex + 1
+          if (nextIdx < changes.length) {
+            setCurrentChangeIndex(nextIdx)
+          } else {
+            setStep('complete')
+          }
         }
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : String(err)
@@ -242,12 +262,20 @@ export function ApplyChanges() {
   }
 
   const handleReject = () => {
-    const nextIdx = currentChangeIndex + 1
+    const updatedRemaining = getRemainingIndices()
     setRejectedChanges([...rejectedChanges, changes[currentChangeIndex]])
-    if (nextIdx < changes.length) {
-      setCurrentChangeIndex(nextIdx)
+
+    if (reviewMode === 'remaining') {
+      if (currentIndex >= updatedRemaining.length - 1) {
+        setStep('complete')
+      }
     } else {
-      setStep('complete')
+      const nextIdx = currentChangeIndex + 1
+      if (nextIdx < changes.length) {
+        setCurrentChangeIndex(nextIdx)
+      } else {
+        setStep('complete')
+      }
     }
   }
 
