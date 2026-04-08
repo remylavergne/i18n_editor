@@ -10,6 +10,8 @@ export function CreateBackupFile(arg1:string):Promise<string>;
 
 export function DeleteFile(arg1:string):Promise<void>;
 
+export function GenerateI18nDiff(arg1:string,arg2:string,arg3:string,arg4:string,arg5:string):Promise<main.I18nDiffResult>;
+
 export function GetAppliedChangesAsJson(arg1:string,arg2:Array<main.DiffChange>,arg3:Record<string, string>):Promise<string>;
 
 export function GetWorkingDirectory():Promise<string>;

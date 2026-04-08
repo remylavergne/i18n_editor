@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { FileSpreadsheet, FolderOpen, AlertCircle, CheckCircle, Save, X, ArrowRight } from "lucide-react"
-import { ApplyChangeToJson, CheckAlreadyApplied, CreateBackupFile, DeleteFile, GetAppliedChangesAsJson, OpenFileDialog, ReadTextFile, RestoreFileFromBackup, SaveAppliedChanges, SaveFileDialog, SaveTextFile } from "../../wailsjs/go/main/App"
+import { FileSpreadsheet, FolderOpen, AlertCircle, CheckCircle, X, ArrowRight } from "lucide-react"
+import { ApplyChangeToJson, CheckAlreadyApplied, CreateBackupFile, DeleteFile, OpenFileDialog, ReadTextFile, RestoreFileFromBackup } from "../../wailsjs/go/main/App"
 import { main } from "../../wailsjs/go/models"
 
 interface DiffChange {
@@ -21,7 +21,8 @@ type Step = 'select' | 'review' | 'complete'
 export function ApplyChanges() {
   const { t } = useTranslation()
   const placeholderContextImageUrl = 'https://www.flandersclassics.be/_media/blocks/image/1701958876/crop/2000/0/892/892.jpg'
-  const [targetFile, setTargetFile] = useState('')
+  const [targetFileFr, setTargetFileFr] = useState('')
+  const [targetFileNl, setTargetFileNl] = useState('')
   const [changesFile, setChangesFile] = useState('')
   const [standardizedChanges, setStandardizedChanges] = useState<main.StandardizedDiffChange[]>([])
   const [changes, setChanges] = useState<DiffChange[]>([])
@@ -34,7 +35,8 @@ export function ApplyChanges() {
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState<Step>('select')
-  const [backupFilePath, setBackupFilePath] = useState('')
+  const [backupFilePathFr, setBackupFilePathFr] = useState('')
+  const [backupFilePathNl, setBackupFilePathNl] = useState('')
   const [isContextImageOpen, setIsContextImageOpen] = useState(false)
   const [reviewMode, setReviewMode] = useState<'remaining' | 'all'>('remaining')
 
@@ -64,14 +66,22 @@ export function ApplyChanges() {
     )
   }
 
-  const convertToLegacyChanges = (items: main.StandardizedDiffChange[]): DiffChange[] => {
+  const getLanguageValue = (item: main.StandardizedDiffChange, language: 'fr' | 'nl') => {
+    return item.values?.[language]
+  }
+
+  const convertToLegacyChanges = (items: main.StandardizedDiffChange[], language: 'fr' | 'nl'): DiffChange[] => {
     return items
       .map((item) => {
+        const langValue = getLanguageValue(item, language)
+        const oldValue = langValue?.oldValue ?? item.oldValue ?? ''
+        const newValue = langValue?.newValue ?? item.newValue ?? ''
+
         const mapped: DiffChange = {
           type: '',
           key: item.path,
-          oldValue: item.oldValue || '',
-          newValue: item.newValue || '',
+          oldValue,
+          newValue,
           line: item.source?.line || 0,
         }
 
@@ -89,17 +99,24 @@ export function ApplyChanges() {
   }
 
   const cleanupBackupFile = async () => {
-    if (!backupFilePath) {
-      return
+    if (backupFilePathFr) {
+      try {
+        await DeleteFile(backupFilePathFr)
+      } catch {
+        // ignore cleanup errors
+      }
     }
 
-    try {
-      await DeleteFile(backupFilePath)
-    } catch {
-      // ignore cleanup errors
+    if (backupFilePathNl) {
+      try {
+        await DeleteFile(backupFilePathNl)
+      } catch {
+        // ignore cleanup errors
+      }
     }
 
-    setBackupFilePath('')
+    setBackupFilePathFr('')
+    setBackupFilePathNl('')
   }
 
   const parseStandardizedChangeFile = (content: string): main.StandardizedDiffChange[] => {
@@ -134,11 +151,22 @@ export function ApplyChanges() {
     })
   }
 
-  const handleSelectTargetFile = async () => {
+  const handleSelectTargetFileFr = async () => {
     try {
       const filePath = await OpenFileDialog('Select JSON File', 'JSON Files', '*.json')
       if (filePath) {
-        setTargetFile(filePath)
+        setTargetFileFr(filePath)
+      }
+    } catch {
+      setError(t('applyChanges.selectFileError'))
+    }
+  }
+
+  const handleSelectTargetFileNl = async () => {
+    try {
+      const filePath = await OpenFileDialog('Select JSON File', 'JSON Files', '*.json')
+      if (filePath) {
+        setTargetFileNl(filePath)
       }
     } catch {
       setError(t('applyChanges.selectFileError'))
@@ -157,7 +185,7 @@ export function ApplyChanges() {
   }
 
   const handleLoadChanges = async () => {
-    if (!targetFile || !changesFile) {
+    if (!targetFileFr || !targetFileNl || !changesFile) {
       setError(t('errors.fillAllFields'))
       return
     }
@@ -176,11 +204,16 @@ export function ApplyChanges() {
         return
       }
 
-      const legacyChanges = convertToLegacyChanges(parsedStandardized)
-      const alreadyAppliedResult = await CheckAlreadyApplied(targetFile, legacyChanges)
+      const legacyChangesFr = convertToLegacyChanges(parsedStandardized, 'fr')
+      const legacyChangesNl = convertToLegacyChanges(parsedStandardized, 'nl')
+      const [alreadyAppliedFr, alreadyAppliedNl] = await Promise.all([
+        CheckAlreadyApplied(targetFileFr, legacyChangesFr),
+        CheckAlreadyApplied(targetFileNl, legacyChangesNl),
+      ])
+      const alreadyAppliedResult = alreadyAppliedFr.map((value, index) => value && alreadyAppliedNl[index])
 
       setStandardizedChanges(parsedStandardized)
-      setChanges(legacyChanges)
+      setChanges(legacyChangesFr)
       setAlreadyApplied(alreadyAppliedResult)
       setCurrentIndex(0)
       setAppliedChanges([])
@@ -220,9 +253,13 @@ export function ApplyChanges() {
       setError('')
 
       try {
-        if (!backupFilePath) {
-          const createdBackupPath = await CreateBackupFile(targetFile)
-          setBackupFilePath(createdBackupPath)
+        if (!backupFilePathFr) {
+          const createdBackupPathFr = await CreateBackupFile(targetFileFr)
+          setBackupFilePathFr(createdBackupPathFr)
+        }
+        if (!backupFilePathNl) {
+          const createdBackupPathNl = await CreateBackupFile(targetFileNl)
+          setBackupFilePathNl(createdBackupPathNl)
         }
 
         const remainingIndices = getRemainingIndices()
@@ -235,16 +272,34 @@ export function ApplyChanges() {
         const overrideValue = overrides[change.key]
         const newValue = overrideValue || change.newValue
 
-        await ApplyChangeToJson(targetFile, main.DiffChange.createFrom({
-          type: change.type,
-          key: change.key,
-          oldValue: change.oldValue,
-          newValue: newValue,
-          line: change.line,
+        const changeFr = convertToLegacyChanges([standardizedChanges[displayIndex]], 'fr')[0]
+        const changeNl = convertToLegacyChanges([standardizedChanges[displayIndex]], 'nl')[0]
+        const overrideValueNl = overrides[`${change.key}__nl`] || ''
+
+        await ApplyChangeToJson(targetFileFr, main.DiffChange.createFrom({
+          type: changeFr.type,
+          key: changeFr.key,
+          oldValue: changeFr.oldValue,
+          newValue,
+          line: changeFr.line,
         }), newValue)
 
+        await ApplyChangeToJson(targetFileNl, main.DiffChange.createFrom({
+          type: changeNl.type,
+          key: changeNl.key,
+          oldValue: changeNl.oldValue,
+          newValue: overrideValueNl || changeNl.newValue,
+          line: changeNl.line,
+        }), overrideValueNl || changeNl.newValue)
+
         const updatedAppliedChanges = [...appliedChanges, change]
-        const refreshedAlreadyApplied = await CheckAlreadyApplied(targetFile, changes)
+        const allChangesFr = convertToLegacyChanges(standardizedChanges, 'fr')
+        const allChangesNl = convertToLegacyChanges(standardizedChanges, 'nl')
+        const [refreshedFr, refreshedNl] = await Promise.all([
+          CheckAlreadyApplied(targetFileFr, allChangesFr),
+          CheckAlreadyApplied(targetFileNl, allChangesNl),
+        ])
+        const refreshedAlreadyApplied = refreshedFr.map((value, index) => value && refreshedNl[index])
         setAppliedChanges(updatedAppliedChanges)
         setAlreadyApplied(refreshedAlreadyApplied)
 
@@ -307,10 +362,13 @@ export function ApplyChanges() {
     setError('')
 
     try {
-      let nextBackupPath = backupFilePath
-      if (!nextBackupPath) {
-        nextBackupPath = await CreateBackupFile(targetFile)
-        setBackupFilePath(nextBackupPath)
+      if (!backupFilePathFr) {
+        const createdBackupPathFr = await CreateBackupFile(targetFileFr)
+        setBackupFilePathFr(createdBackupPathFr)
+      }
+      if (!backupFilePathNl) {
+        const createdBackupPathNl = await CreateBackupFile(targetFileNl)
+        setBackupFilePathNl(createdBackupPathNl)
       }
 
       const appliedSet = new Set(appliedChanges.map((change) => change.key))
@@ -333,20 +391,36 @@ export function ApplyChanges() {
         const change = changes[index]
         const overrideValue = overrides[change.key]
         const newValue = overrideValue || change.newValue
+        const changeFr = convertToLegacyChanges([standardizedChanges[index]], 'fr')[0]
+        const changeNl = convertToLegacyChanges([standardizedChanges[index]], 'nl')[0]
 
-        await ApplyChangeToJson(targetFile, main.DiffChange.createFrom({
-          type: change.type,
-          key: change.key,
-          oldValue: change.oldValue,
+        await ApplyChangeToJson(targetFileFr, main.DiffChange.createFrom({
+          type: changeFr.type,
+          key: changeFr.key,
+          oldValue: changeFr.oldValue,
           newValue,
-          line: change.line,
+          line: changeFr.line,
         }), newValue)
+
+        await ApplyChangeToJson(targetFileNl, main.DiffChange.createFrom({
+          type: changeNl.type,
+          key: changeNl.key,
+          oldValue: changeNl.oldValue,
+          newValue: changeNl.newValue,
+          line: changeNl.line,
+        }), changeNl.newValue)
 
         appliedNow.push(change)
       }
 
       const updatedAppliedChanges = [...appliedChanges, ...appliedNow]
-      const refreshedAlreadyApplied = await CheckAlreadyApplied(targetFile, changes)
+      const allChangesFr = convertToLegacyChanges(standardizedChanges, 'fr')
+      const allChangesNl = convertToLegacyChanges(standardizedChanges, 'nl')
+      const [refreshedFr, refreshedNl] = await Promise.all([
+        CheckAlreadyApplied(targetFileFr, allChangesFr),
+        CheckAlreadyApplied(targetFileNl, allChangesNl),
+      ])
+      const refreshedAlreadyApplied = refreshedFr.map((value, index) => value && refreshedNl[index])
       setAppliedChanges(updatedAppliedChanges)
       setAlreadyApplied(refreshedAlreadyApplied)
       setStep('complete')
@@ -371,69 +445,22 @@ export function ApplyChanges() {
     })
   }
 
-  const handleDownload = async () => {
-    setLoading(true)
-    setError('')
-
-    if (appliedChanges.length === 0) {
-      setError(t('applyChanges.noAppliedChanges'))
-      setLoading(false)
-      return
-    }
-
-    try {
-      const defaultName = targetFile.split('/').pop()?.replace('.json', '_translated.json') || 'translated.json'
-      const savePath = await SaveFileDialog('Save translated file', defaultName)
-
-      if (!savePath) {
-        setLoading(false)
-        return
-      }
-
-      const jsonContent = await GetAppliedChangesAsJson(targetFile, appliedChanges, overrides)
-      if (!jsonContent) {
-        setError(t('applyChanges.emptyOutputError'))
-        return
-      }
-
-      await SaveTextFile(savePath, jsonContent)
-      setSuccess(t('applyChanges.downloadSuccess'))
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : String(err)
-      setError(errorMessage)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleOverwrite = async () => {
-    setLoading(true)
-    setError('')
-    setSuccess('')
-
-    try {
-      await SaveAppliedChanges(targetFile, appliedChanges, overrides, targetFile)
-      setSuccess(t('applyChanges.overwriteSuccess'))
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : String(err)
-      setError(errorMessage)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const handleAbort = async () => {
     setLoading(true)
     setError('')
     setSuccess('')
 
     try {
-      if (backupFilePath) {
-        await RestoreFileFromBackup(targetFile, backupFilePath)
+      if (backupFilePathFr) {
+        await RestoreFileFromBackup(targetFileFr, backupFilePathFr)
+      }
+      if (backupFilePathNl) {
+        await RestoreFileFromBackup(targetFileNl, backupFilePathNl)
       }
 
       setSuccess(t('applyChanges.abortSuccess'))
-      setTargetFile('')
+      setTargetFileFr('')
+      setTargetFileNl('')
       setChangesFile('')
       setStandardizedChanges([])
       setChanges([])
@@ -442,7 +469,8 @@ export function ApplyChanges() {
       setRejectedChanges([])
       setAlreadyApplied([])
       setOverrides({})
-      setBackupFilePath('')
+      setBackupFilePathFr('')
+      setBackupFilePathNl('')
       setStep('select')
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err)
@@ -454,7 +482,8 @@ export function ApplyChanges() {
 
   const handleReset = async () => {
     await cleanupBackupFile()
-    setTargetFile('')
+    setTargetFileFr('')
+    setTargetFileNl('')
     setChangesFile('')
     setStandardizedChanges([])
     setChanges([])
@@ -490,15 +519,31 @@ export function ApplyChanges() {
             </div>
 
             <div className="space-y-3">
-              <Label className="text-base">{t('applyChanges.targetFile')}</Label>
+              <Label className="text-base">{t('applyChanges.targetFileFr')}</Label>
               <div className="flex gap-3">
                 <Input
-                  value={targetFile}
-                  placeholder={t('applyChanges.selectJsonFile')}
-                  onChange={(e) => setTargetFile(e.target.value)}
+                  value={targetFileFr}
+                  placeholder={t('applyChanges.selectFrJsonFile')}
+                  onChange={(e) => setTargetFileFr(e.target.value)}
                   className="flex-1 h-12 text-base"
                 />
-                <Button variant="outline" onClick={handleSelectTargetFile} className="h-12 px-5 text-base">
+                <Button variant="outline" onClick={handleSelectTargetFileFr} className="h-12 px-5 text-base">
+                  <FolderOpen className="h-4 w-4 mr-2" />
+                  {t('createDiff.browse')}
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-base">{t('applyChanges.targetFileNl')}</Label>
+              <div className="flex gap-3">
+                <Input
+                  value={targetFileNl}
+                  placeholder={t('applyChanges.selectNlJsonFile')}
+                  onChange={(e) => setTargetFileNl(e.target.value)}
+                  className="flex-1 h-12 text-base"
+                />
+                <Button variant="outline" onClick={handleSelectTargetFileNl} className="h-12 px-5 text-base">
                   <FolderOpen className="h-4 w-4 mr-2" />
                   {t('createDiff.browse')}
                 </Button>
@@ -531,7 +576,7 @@ export function ApplyChanges() {
             <Button
               className="w-full h-12 mt-3 text-base"
               onClick={handleLoadChanges}
-              disabled={loading || !targetFile || !changesFile}
+              disabled={loading || !targetFileFr || !targetFileNl || !changesFile}
             >
               {loading ? t('applyChanges.loading') : t('applyChanges.loadChanges')}
             </Button>
@@ -872,23 +917,18 @@ export function ApplyChanges() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
               <Button variant="outline" className="h-12 text-base" onClick={handleReset}>
                 {t('applyChanges.startOver')}
               </Button>
-              <Button className="h-12 text-base" onClick={handleDownload} disabled={loading}>
-                <Save className="h-4 w-4 mr-2" />
-                {t('applyChanges.downloadFile')}
-              </Button>
-              <Button variant="secondary" className="h-12 text-base" onClick={handleOverwrite} disabled={loading}>
-                <Save className="h-4 w-4 mr-2" />
-                {t('applyChanges.overwriteFile')}
+              <Button variant="secondary" className="h-12 text-base" onClick={handleAbort} disabled={loading}>
+                {t('applyChanges.abort')}
               </Button>
             </div>
 
-            <Button variant="outline" className="w-full h-12 text-base" onClick={handleAbort} disabled={loading}>
-              {t('applyChanges.abort')}
-            </Button>
+            <div className="rounded-md border p-3 text-sm text-muted-foreground text-center">
+              {t('applyChanges.multiLangAppliedInfo')}
+            </div>
           </CardContent>
         </Card>
       </div>

@@ -202,6 +202,74 @@ func (a *App) GitDiffBranches(repoPath, sourceBranch, targetBranch, filePath str
 	return result, nil
 }
 
+func (a *App) GenerateI18nDiff(repoPath, sourceBranch, targetBranch, frFilePath, nlFilePath string) (I18nDiffResult, error) {
+	if repoPath == "" || sourceBranch == "" || targetBranch == "" || frFilePath == "" || nlFilePath == "" {
+		return I18nDiffResult{}, fmt.Errorf("all fields are required")
+	}
+
+	if _, err := os.Stat(repoPath); err != nil {
+		return I18nDiffResult{}, fmt.Errorf("repository path does not exist: %w", err)
+	}
+
+	branches := []string{sourceBranch, targetBranch}
+	for _, branch := range branches {
+		frJSON, err := getJSONAtBranch(repoPath, branch, frFilePath)
+		if err != nil {
+			return I18nDiffResult{}, err
+		}
+		nlJSON, err := getJSONAtBranch(repoPath, branch, nlFilePath)
+		if err != nil {
+			return I18nDiffResult{}, err
+		}
+
+		frPaths := getJSONLeafPaths(frJSON)
+		nlPaths := getJSONLeafPaths(nlJSON)
+		missingInNL := getMissingKeys(frPaths, nlPaths)
+		missingInFR := getMissingKeys(nlPaths, frPaths)
+
+		if len(missingInNL) > 0 || len(missingInFR) > 0 {
+			return I18nDiffResult{}, buildAlignmentError(branch, frFilePath, nlFilePath, missingInNL, missingInFR)
+		}
+	}
+
+	frDiff, err := a.GitDiffBranches(repoPath, sourceBranch, targetBranch, frFilePath)
+	if err != nil {
+		return I18nDiffResult{}, err
+	}
+	nlDiff, err := a.GitDiffBranches(repoPath, sourceBranch, targetBranch, nlFilePath)
+	if err != nil {
+		return I18nDiffResult{}, err
+	}
+
+	frChanges, err := a.ParseDiffToStandardChanges(frDiff)
+	if err != nil {
+		return I18nDiffResult{}, err
+	}
+	nlChanges, err := a.ParseDiffToStandardChanges(nlDiff)
+	if err != nil {
+		return I18nDiffResult{}, err
+	}
+
+	changes := mergeLocalizedChanges(map[string][]StandardizedDiffChange{
+		"fr": frChanges,
+		"nl": nlChanges,
+	})
+
+	combinedDiff := strings.TrimSpace(frDiff)
+	if combinedDiff != "" {
+		combinedDiff += "\n\n"
+	}
+	combinedDiff += strings.TrimSpace(nlDiff)
+	if strings.TrimSpace(combinedDiff) == "" {
+		combinedDiff = "No differences found between the specified branches for FR and NL files."
+	}
+
+	return I18nDiffResult{
+		Diff:    combinedDiff,
+		Changes: changes,
+	}, nil
+}
+
 type DiffChange struct {
 	Type     string `json:"type"`     // "add", "modify", "delete"
 	Key      string `json:"key"`      // JSON key path like "app.title"
@@ -225,8 +293,19 @@ type StandardizedDiffChange struct {
 	Key      string                 `json:"key"`
 	OldValue string                 `json:"oldValue,omitempty"`
 	NewValue string                 `json:"newValue,omitempty"`
+	Values   map[string]DiffValue   `json:"values,omitempty"`
 	Context  *DiffChangeContext     `json:"context,omitempty"`
 	Source   DiffChangeSource       `json:"source"`
+}
+
+type DiffValue struct {
+	OldValue string `json:"oldValue,omitempty"`
+	NewValue string `json:"newValue,omitempty"`
+}
+
+type I18nDiffResult struct {
+	Diff    string                   `json:"diff"`
+	Changes []StandardizedDiffChange `json:"changes"`
 }
 
 type DiffChangeContext struct {
@@ -405,6 +484,147 @@ func extractDiffSideEntries(diffContent string, side byte) map[string]diffSideEn
 	}
 
 	return entries
+}
+
+func collectLeafJSONPaths(value interface{}, basePath string, out map[string]struct{}) {
+	switch typed := value.(type) {
+	case map[string]interface{}:
+		if len(typed) == 0 && basePath != "" {
+			out[basePath] = struct{}{}
+			return
+		}
+		for key, child := range typed {
+			next := key
+			if basePath != "" {
+				next = basePath + "." + key
+			}
+			collectLeafJSONPaths(child, next, out)
+		}
+	case []interface{}:
+		if basePath != "" {
+			out[basePath] = struct{}{}
+		}
+	default:
+		if basePath != "" {
+			out[basePath] = struct{}{}
+		}
+	}
+}
+
+func getJSONLeafPaths(jsonData map[string]interface{}) map[string]struct{} {
+	result := make(map[string]struct{})
+	collectLeafJSONPaths(jsonData, "", result)
+	return result
+}
+
+func getJSONAtBranch(repoPath, branch, filePath string) (map[string]interface{}, error) {
+	cmd := exec.Command("git", "show", fmt.Sprintf("%s:%s", branch, filePath))
+	cmd.Dir = repoPath
+
+	output, err := cmd.Output()
+	if err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			return nil, fmt.Errorf("git show error for %s on %s: %s", filePath, branch, string(exitError.Stderr))
+		}
+		return nil, fmt.Errorf("failed to read %s on %s: %w", filePath, branch, err)
+	}
+
+	var parsed map[string]interface{}
+	if err := json.Unmarshal(output, &parsed); err != nil {
+		return nil, fmt.Errorf("failed to parse %s on %s as JSON: %w", filePath, branch, err)
+	}
+
+	return parsed, nil
+}
+
+func getMissingKeys(source, target map[string]struct{}) []string {
+	missing := make([]string, 0)
+	for key := range source {
+		if _, exists := target[key]; !exists {
+			missing = append(missing, key)
+		}
+	}
+	sort.Strings(missing)
+	return missing
+}
+
+func buildAlignmentError(branch, frFilePath, nlFilePath string, missingInNL, missingInFR []string) error {
+	maxList := 20
+	formatList := func(keys []string) string {
+		if len(keys) == 0 {
+			return "none"
+		}
+		if len(keys) <= maxList {
+			return strings.Join(keys, ", ")
+		}
+		return strings.Join(keys[:maxList], ", ") + fmt.Sprintf(" ... (+%d more)", len(keys)-maxList)
+	}
+
+	return fmt.Errorf(
+		"i18n files are not aligned on branch '%s'. Missing in NL (%s -> %s): %s. Missing in FR (%s -> %s): %s",
+		branch,
+		frFilePath,
+		nlFilePath,
+		formatList(missingInNL),
+		nlFilePath,
+		frFilePath,
+		formatList(missingInFR),
+	)
+}
+
+func mergeLocalizedChanges(changesByLang map[string][]StandardizedDiffChange) []StandardizedDiffChange {
+	type compositeKey struct {
+		Path   string
+		Action StandardizedDiffAction
+	}
+
+	merged := make(map[compositeKey]StandardizedDiffChange)
+	order := make([]compositeKey, 0)
+
+	for lang, changes := range changesByLang {
+		for _, change := range changes {
+			key := compositeKey{Path: change.Path, Action: change.Action}
+			existing, exists := merged[key]
+			if !exists {
+				existing = StandardizedDiffChange{
+					Action:   change.Action,
+					Path:     change.Path,
+					Segments: change.Segments,
+					Key:      change.Key,
+					Values:   map[string]DiffValue{},
+					Source:   change.Source,
+				}
+				order = append(order, key)
+			}
+
+			existing.Values[lang] = DiffValue{OldValue: change.OldValue, NewValue: change.NewValue}
+
+			if lang == "fr" {
+				existing.OldValue = change.OldValue
+				existing.NewValue = change.NewValue
+			}
+
+			if existing.Source.Line == 0 || (change.Source.Line > 0 && change.Source.Line < existing.Source.Line) {
+				existing.Source = change.Source
+			}
+
+			merged[key] = existing
+		}
+	}
+
+	result := make([]StandardizedDiffChange, 0, len(order))
+	for _, key := range order {
+		result = append(result, merged[key])
+	}
+
+	sort.Slice(result, func(i, j int) bool {
+		if result[i].Path == result[j].Path {
+			return result[i].Action < result[j].Action
+		}
+		return result[i].Path < result[j].Path
+	})
+
+	return result
 }
 
 func (a *App) ParseDiffToStandardChanges(diffContent string) ([]StandardizedDiffChange, error) {

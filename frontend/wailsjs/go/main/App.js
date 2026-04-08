@@ -18,6 +18,10 @@ export function DeleteFile(arg1) {
   return window['go']['main']['App']['DeleteFile'](arg1);
 }
 
+export function GenerateI18nDiff(arg1, arg2, arg3, arg4, arg5) {
+  return window['go']['main']['App']['GenerateI18nDiff'](arg1, arg2, arg3, arg4, arg5);
+}
+
 export function GetAppliedChangesAsJson(arg1, arg2, arg3) {
   return window['go']['main']['App']['GetAppliedChangesAsJson'](arg1, arg2, arg3);
 }

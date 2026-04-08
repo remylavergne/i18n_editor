@@ -52,6 +52,20 @@ export namespace main {
 	        this.line = source["line"];
 	    }
 	}
+	export class DiffValue {
+	    oldValue?: string;
+	    newValue?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new DiffValue(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.oldValue = source["oldValue"];
+	        this.newValue = source["newValue"];
+	    }
+	}
 	export class StandardizedDiffChange {
 	    action: string;
 	    path: string;
@@ -59,6 +73,7 @@ export namespace main {
 	    key: string;
 	    oldValue?: string;
 	    newValue?: string;
+	    values?: Record<string, DiffValue>;
 	    context?: DiffChangeContext;
 	    source: DiffChangeSource;
 	
@@ -74,8 +89,41 @@ export namespace main {
 	        this.key = source["key"];
 	        this.oldValue = source["oldValue"];
 	        this.newValue = source["newValue"];
+	        this.values = this.convertValues(source["values"], DiffValue, true);
 	        this.context = this.convertValues(source["context"], DiffChangeContext);
 	        this.source = this.convertValues(source["source"], DiffChangeSource);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class I18nDiffResult {
+	    diff: string;
+	    changes: StandardizedDiffChange[];
+	
+	    static createFrom(source: any = {}) {
+	        return new I18nDiffResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.diff = source["diff"];
+	        this.changes = this.convertValues(source["changes"], StandardizedDiffChange);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

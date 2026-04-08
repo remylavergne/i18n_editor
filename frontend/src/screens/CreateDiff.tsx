@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { FileDiff, GitBranch, FolderOpen, AlertCircle } from "lucide-react"
-import { GitDiffBranches, OpenDirectoryDialog, OpenFileDialog, ParseDiffToStandardChanges, ReadTextFile, SaveFileDialog, SaveTextFile } from "../../wailsjs/go/main/App"
+import { GenerateI18nDiff, OpenDirectoryDialog, OpenFileDialog, ReadTextFile, SaveFileDialog, SaveTextFile } from "../../wailsjs/go/main/App"
 import { main } from "../../wailsjs/go/models"
 import { DiffViewer } from "@/components/DiffViewer"
 
@@ -14,7 +14,8 @@ export function CreateDiff() {
   const [repoPath, setRepoPath] = useState('')
   const [sourceBranch, setSourceBranch] = useState('')
   const [targetBranch, setTargetBranch] = useState('')
-  const [filePath, setFilePath] = useState('')
+  const [frFilePath, setFrFilePath] = useState('')
+  const [nlFilePath, setNlFilePath] = useState('')
   const [standardizedFilePath, setStandardizedFilePath] = useState('')
   const [diffResult, setDiffResult] = useState('')
   const [standardizedChanges, setStandardizedChanges] = useState<main.StandardizedDiffChange[]>([])
@@ -45,7 +46,7 @@ export function CreateDiff() {
   }
 
   const handleGenerateDiff = async () => {
-    if (!repoPath || !sourceBranch || !targetBranch || !filePath) {
+    if (!repoPath || !sourceBranch || !targetBranch || !frFilePath || !nlFilePath) {
       setError(t('errors.fillAllFields'))
       return
     }
@@ -56,18 +57,13 @@ export function CreateDiff() {
     setStandardizedChanges([])
 
     try {
-      const result = await GitDiffBranches(repoPath, sourceBranch, targetBranch, filePath)
-      console.log('GitDiffBranches result type:', typeof result, 'value:', result)
-      if (typeof result !== 'string') {
-        throw new Error(`Expected string from GitDiffBranches, got ${typeof result}: ${JSON.stringify(result)}`)
-      }
-      setDiffResult(result)
-      const changes = await ParseDiffToStandardChanges(result)
-      setStandardizedChanges(changes)
+      const result = await GenerateI18nDiff(repoPath, sourceBranch, targetBranch, frFilePath, nlFilePath)
+      setDiffResult(result.diff)
+      setStandardizedChanges(result.changes)
       setJiraTableOutput('')
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err)
-      console.error('GitDiffBranches error:', err)
+      console.error('GenerateI18nDiff error:', err)
       setError(errorMessage)
       setDiffResult('')
     } finally {
@@ -96,8 +92,9 @@ export function CreateDiff() {
   }
 
   const getBaseFilename = () => {
-    const fileName = filePath.split('/').pop() || 'file'
-    return `diff-${sourceBranch}-${targetBranch}-${fileName}-${getTimestamp()}`
+    const frFileName = frFilePath.split('/').pop() || 'fr'
+    const nlFileName = nlFilePath.split('/').pop() || 'nl'
+    return `diff-${sourceBranch}-${targetBranch}-${frFileName}-${nlFileName}-${getTimestamp()}`
   }
 
   const handleDownloadPatch = async () => {
@@ -148,10 +145,30 @@ export function CreateDiff() {
   }
 
   const getFrValueForAction = (change: main.StandardizedDiffChange) => {
+    const frValues = change.values?.fr
+    if (frValues) {
+      if (change.action === 'delete') {
+        return frValues.oldValue || ''
+      }
+      return frValues.newValue || ''
+    }
+
     if (change.action === 'delete') {
       return change.oldValue || ''
     }
     return change.newValue || ''
+  }
+
+  const getNlValueForAction = (change: main.StandardizedDiffChange) => {
+    const nlValues = change.values?.nl
+    if (!nlValues) {
+      return ''
+    }
+
+    if (change.action === 'delete') {
+      return nlValues.oldValue || ''
+    }
+    return nlValues.newValue || ''
   }
 
   const buildJiraConfluenceTable = (changes: main.StandardizedDiffChange[]) => {
@@ -177,7 +194,8 @@ export function CreateDiff() {
       const path = escapeTableCell(change.path || '')
       const action = escapeTableCell(formatActionForTable(change.action || ''))
       const frValue = escapeTableCell(getFrValueForAction(change))
-      return [path, action, frValue, '', '', '', ''].join('\t')
+      const nlValue = escapeTableCell(getNlValueForAction(change))
+      return [path, action, frValue, nlValue, '', '', ''].join('\t')
     })
 
     return [header, ...rows].join('\n')
@@ -203,7 +221,8 @@ export function CreateDiff() {
       const path = escapeHtml(change.path || '')
       const action = escapeHtml(formatActionForTable(change.action || ''))
       const frValue = escapeHtml(getFrValueForAction(change))
-      return `<tr><td>${path}</td><td>${action}</td><td>${frValue}</td><td></td><td></td><td></td><td></td></tr>`
+      const nlValue = escapeHtml(getNlValueForAction(change))
+      return `<tr><td>${path}</td><td>${action}</td><td>${frValue}</td><td>${nlValue}</td><td></td><td></td><td></td></tr>`
     }).join('')
 
     return `<table><thead><tr><th>Path</th><th>Action</th><th>Traduction FR</th><th>Traduction NL</th><th>Traduction DE</th><th>Limitations techniques eventuelles</th><th>transversalite</th></tr></thead><tbody>${cells}</tbody></table>`
@@ -316,12 +335,22 @@ export function CreateDiff() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="file-path">{t('createDiff.filePath')}</Label>
+            <Label htmlFor="fr-file-path">{t('createDiff.frFilePath')}</Label>
             <Input 
-              id="file-path" 
-              placeholder={t('createDiff.filePathPlaceholder')} 
-              value={filePath}
-              onChange={(e) => setFilePath(e.target.value)}
+              id="fr-file-path" 
+              placeholder={t('createDiff.frFilePathPlaceholder')} 
+              value={frFilePath}
+              onChange={(e) => setFrFilePath(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="nl-file-path">{t('createDiff.nlFilePath')}</Label>
+            <Input 
+              id="nl-file-path" 
+              placeholder={t('createDiff.nlFilePathPlaceholder')} 
+              value={nlFilePath}
+              onChange={(e) => setNlFilePath(e.target.value)}
             />
           </div>
 
