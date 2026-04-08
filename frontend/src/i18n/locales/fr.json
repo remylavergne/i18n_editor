@@ -50,8 +50,11 @@
     "downloadPatch": "Telecharger patch",
     "downloadStandardized": "Telecharger JSON standardise",
     "generateJiraTable": "Generer tableau Jira",
+    "generateFromStandardizedFile": "Generer tableau Jira depuis JSON standardise",
+    "selectStandardizedFile": "Selectionner le fichier JSON de modifications standardisees",
     "jiraTableResult": "Tableau Jira / Confluence",
     "copyJiraTable": "Copier tableau",
+    "jiraTableHint": "Copiez puis collez directement dans la description Jira. Cet export utilise des lignes separees par tabulation et un format de tableau riche.",
     "noDifferences": "Aucune différence trouvée entre les branches spécifiées pour ce fichier."
   },
   "applyChanges": {

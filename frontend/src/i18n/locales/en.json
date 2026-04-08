@@ -50,8 +50,11 @@
     "downloadPatch": "Download patch",
     "downloadStandardized": "Download standardized JSON",
     "generateJiraTable": "Generate Jira table",
+    "generateFromStandardizedFile": "Generate Jira table from standardized JSON",
+    "selectStandardizedFile": "Select standardized changes JSON file",
     "jiraTableResult": "Jira / Confluence table",
     "copyJiraTable": "Copy table",
+    "jiraTableHint": "Copy and paste directly into Jira description. This export uses tab-separated rows and rich table clipboard format.",
     "noDifferences": "No differences found between the specified branches for this file."
   },
   "applyChanges": {

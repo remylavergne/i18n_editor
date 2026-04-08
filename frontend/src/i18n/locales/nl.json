@@ -50,8 +50,11 @@
     "downloadPatch": "Patch downloaden",
     "downloadStandardized": "Gestandaardiseerde JSON downloaden",
     "generateJiraTable": "Genereer Jira tabel",
+    "generateFromStandardizedFile": "Genereer Jira tabel uit gestandaardiseerde JSON",
+    "selectStandardizedFile": "Selecteer gestandaardiseerd JSON-wijzigingsbestand",
     "jiraTableResult": "Jira / Confluence tabel",
     "copyJiraTable": "Kopieer tabel",
+    "jiraTableHint": "Kopieer en plak direct in de Jira-beschrijving. Deze export gebruikt tab-gescheiden rijen en rich-table clipboard-formaat.",
     "noDifferences": "Geen verschillen gevonden tussen de opgegeven branches voor dit bestand."
   },
   "applyChanges": {

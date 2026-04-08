@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { FileDiff, GitBranch, FolderOpen, AlertCircle } from "lucide-react"
-import { GitDiffBranches, OpenDirectoryDialog, ParseDiffToStandardChanges, SaveFileDialog, SaveTextFile } from "../../wailsjs/go/main/App"
+import { GitDiffBranches, OpenDirectoryDialog, OpenFileDialog, ParseDiffToStandardChanges, ReadTextFile, SaveFileDialog, SaveTextFile } from "../../wailsjs/go/main/App"
 import { main } from "../../wailsjs/go/models"
 import { DiffViewer } from "@/components/DiffViewer"
 
@@ -15,6 +15,7 @@ export function CreateDiff() {
   const [sourceBranch, setSourceBranch] = useState('')
   const [targetBranch, setTargetBranch] = useState('')
   const [filePath, setFilePath] = useState('')
+  const [standardizedFilePath, setStandardizedFilePath] = useState('')
   const [diffResult, setDiffResult] = useState('')
   const [standardizedChanges, setStandardizedChanges] = useState<main.StandardizedDiffChange[]>([])
   const [jiraTableOutput, setJiraTableOutput] = useState('')
@@ -29,6 +30,17 @@ export function CreateDiff() {
       }
     } catch {
       setError('Failed to select repository')
+    }
+  }
+
+  const handleSelectStandardizedFile = async () => {
+    try {
+      const selectedPath = await OpenFileDialog('Select Standardized Changes File', 'JSON Files', '*.json')
+      if (selectedPath) {
+        setStandardizedFilePath(selectedPath)
+      }
+    } catch {
+      setError(t('applyChanges.selectFileError'))
     }
   }
 
@@ -107,6 +119,14 @@ export function CreateDiff() {
     await downloadBlob(exportPayload, `${getBaseFilename()}.json`)
   }
 
+  const parseStandardizedChanges = (raw: string) => {
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) {
+      throw new Error(t('applyChanges.invalidChangesFile'))
+    }
+    return parsed.map((item) => main.StandardizedDiffChange.createFrom(item))
+  }
+
   const formatActionForTable = (action: string) => {
     if (action === 'change') {
       return 'modified'
@@ -116,7 +136,7 @@ export function CreateDiff() {
 
   const escapeTableCell = (value: string) => {
     return value
-      .replace(/\|/g, '\\|')
+      .replace(/\t/g, ' ')
       .replace(/\r?\n/g, ' ')
       .trim()
   }
@@ -137,15 +157,67 @@ export function CreateDiff() {
       return a.action.localeCompare(b.action)
     })
 
-    const header = "|| Path || Action || Traduction FR || Traduction NL || Limitations techniques eventuelles || transversalite ||"
+    const header = [
+      'Path',
+      'Action',
+      'Traduction FR',
+      'Traduction NL',
+      'Limitations techniques eventuelles',
+      'transversalite',
+    ].join('\t')
+
     const rows = sorted.map((change) => {
       const path = escapeTableCell(change.path || '')
       const action = escapeTableCell(formatActionForTable(change.action || ''))
       const frValue = escapeTableCell(getFrValueForAction(change))
-      return `| ${path} | ${action} | ${frValue} |  |  |  |`
+      return [path, action, frValue, '', '', ''].join('\t')
     })
 
     return [header, ...rows].join('\n')
+  }
+
+  const buildJiraConfluenceHtmlTable = (changes: main.StandardizedDiffChange[]) => {
+    const sorted = [...changes].sort((a, b) => {
+      const pathCompare = a.path.localeCompare(b.path)
+      if (pathCompare !== 0) {
+        return pathCompare
+      }
+      return a.action.localeCompare(b.action)
+    })
+
+    const escapeHtml = (value: string) => value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+
+    const cells = sorted.map((change) => {
+      const path = escapeHtml(change.path || '')
+      const action = escapeHtml(formatActionForTable(change.action || ''))
+      const frValue = escapeHtml(getFrValueForAction(change))
+      return `<tr><td>${path}</td><td>${action}</td><td>${frValue}</td><td></td><td></td><td></td></tr>`
+    }).join('')
+
+    return `<table><thead><tr><th>Path</th><th>Action</th><th>Traduction FR</th><th>Traduction NL</th><th>Limitations techniques eventuelles</th><th>transversalite</th></tr></thead><tbody>${cells}</tbody></table>`
+  }
+
+  const copyJiraTable = async (textTable: string, htmlTable: string) => {
+    try {
+      if (typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
+        const item = new ClipboardItem({
+          'text/plain': new Blob([textTable], { type: 'text/plain' }),
+          'text/html': new Blob([htmlTable], { type: 'text/html' }),
+        })
+        await navigator.clipboard.write([item])
+        return true
+      }
+
+      await navigator.clipboard.writeText(textTable)
+      return true
+    } catch {
+      return false
+    }
   }
 
   const handleGenerateJiraTable = async () => {
@@ -155,12 +227,42 @@ export function CreateDiff() {
     }
 
     const output = buildJiraConfluenceTable(standardizedChanges)
+    const htmlOutput = buildJiraConfluenceHtmlTable(standardizedChanges)
     setJiraTableOutput(output)
 
+    const copied = await copyJiraTable(output, htmlOutput)
+    if (!copied) {
+      alert('Table generated. Clipboard access failed, please copy from the text box.')
+    }
+  }
+
+  const handleGenerateJiraTableFromFile = async () => {
+    if (!standardizedFilePath) {
+      alert(t('errors.fillAllFields'))
+      return
+    }
+
     try {
-      await navigator.clipboard.writeText(output)
-    } catch {
-      // Clipboard may be unavailable in some environments.
+      setError('')
+      const raw = await ReadTextFile(standardizedFilePath)
+      const changes = parseStandardizedChanges(raw)
+      if (changes.length === 0) {
+        alert(t('applyChanges.noChangesFound'))
+        return
+      }
+
+      setStandardizedChanges(changes)
+      const output = buildJiraConfluenceTable(changes)
+      const htmlOutput = buildJiraConfluenceHtmlTable(changes)
+      setJiraTableOutput(output)
+
+      const copied = await copyJiraTable(output, htmlOutput)
+      if (!copied) {
+        alert('Table generated. Clipboard access failed, please copy from the text box.')
+      }
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err)
+      setError(errorMessage)
     }
   }
 
@@ -169,9 +271,9 @@ export function CreateDiff() {
       return
     }
 
-    try {
-      await navigator.clipboard.writeText(jiraTableOutput)
-    } catch {
+    const htmlOutput = buildJiraConfluenceHtmlTable(standardizedChanges)
+    const copied = await copyJiraTable(jiraTableOutput, htmlOutput)
+    if (!copied) {
       alert('Unable to copy automatically. Please select and copy manually.')
     }
   }
@@ -259,6 +361,25 @@ export function CreateDiff() {
             {loading ? t('createDiff.generating') : t('createDiff.generateDiff')}
           </Button>
 
+          <div className="rounded-lg border bg-muted/40 p-4 space-y-3">
+            <Label className="text-sm font-medium">{t('createDiff.generateFromStandardizedFile')}</Label>
+            <div className="flex gap-2">
+              <Input
+                placeholder={t('createDiff.selectStandardizedFile')}
+                value={standardizedFilePath}
+                onChange={(e) => setStandardizedFilePath(e.target.value)}
+                className="flex-1"
+              />
+              <Button variant="outline" onClick={handleSelectStandardizedFile}>
+                <FolderOpen className="h-4 w-4 mr-2" />
+                {t('createDiff.browse')}
+              </Button>
+              <Button variant="outline" onClick={handleGenerateJiraTableFromFile}>
+                {t('createDiff.generateJiraTable')}
+              </Button>
+            </div>
+          </div>
+
           {diffResult && (
             <div className="mt-6 space-y-2">
               <div className="flex items-center justify-between">
@@ -276,22 +397,25 @@ export function CreateDiff() {
                 </div>
               </div>
               <DiffViewer content={diffResult} maxHeight="max-h-96" />
+            </div>
+          )}
 
-              {jiraTableOutput && (
-                <div className="space-y-2 mt-4">
-                  <div className="flex items-center justify-between">
-                    <Label>{t('createDiff.jiraTableResult')}</Label>
-                    <Button variant="outline" size="sm" onClick={handleCopyJiraTable}>
-                      {t('createDiff.copyJiraTable')}
-                    </Button>
-                  </div>
-                  <textarea
-                    className="w-full min-h-[220px] rounded-md border bg-background p-3 text-sm font-mono"
-                    value={jiraTableOutput}
-                    readOnly
-                  />
-                </div>
-              )}
+          {jiraTableOutput && (
+            <div className="space-y-2 mt-4">
+              <div className="flex items-center justify-between">
+                <Label>{t('createDiff.jiraTableResult')}</Label>
+                <Button variant="outline" size="sm" onClick={handleCopyJiraTable}>
+                  {t('createDiff.copyJiraTable')}
+                </Button>
+              </div>
+              <textarea
+                className="w-full min-h-[220px] rounded-md border bg-background p-3 text-sm font-mono"
+                value={jiraTableOutput}
+                readOnly
+              />
+              <p className="text-xs text-muted-foreground">
+                {t('createDiff.jiraTableHint')}
+              </p>
             </div>
           )}
         </CardContent>
