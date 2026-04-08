@@ -36,6 +36,8 @@ export function ApplyChanges() {
   const [step, setStep] = useState<Step>('select')
   const [backupFilePath, setBackupFilePath] = useState('')
   const [isContextImageOpen, setIsContextImageOpen] = useState(false)
+  const [reviewMode, setReviewMode] = useState<'remaining' | 'all'>('remaining')
+  const [currentChangeIndex, setCurrentChangeIndex] = useState(0)
 
   const getActionLabel = (action: string) => {
     switch (action) {
@@ -194,12 +196,20 @@ export function ApplyChanges() {
     }
   }
 
-  const moveToNext = () => {
-    if (currentIndex < changes.length - 1) {
+  const moveToNext = (remainingCount: number) => {
+    if (currentIndex < remainingCount - 1) {
       setCurrentIndex(currentIndex + 1)
     } else {
       setStep('complete')
     }
+  }
+
+  const getRemainingIndices = () => {
+    return changes
+      .map((_, i) => i)
+      .filter((i) => {
+        return !alreadyApplied[i] && !appliedChanges.some((a) => a.key === changes[i].key) && !rejectedChanges.some((r) => r.key === changes[i].key)
+      })
   }
 
   const handleApply = () => {
@@ -213,8 +223,13 @@ export function ApplyChanges() {
           setBackupFilePath(createdBackupPath)
         }
 
-        setAppliedChanges([...appliedChanges, changes[currentIndex]])
-        moveToNext()
+        const nextIdx = currentChangeIndex + 1
+        setAppliedChanges([...appliedChanges, changes[currentChangeIndex]])
+        if (nextIdx < changes.length) {
+          setCurrentChangeIndex(nextIdx)
+        } else {
+          setStep('complete')
+        }
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : String(err)
         setError(errorMessage)
@@ -227,8 +242,13 @@ export function ApplyChanges() {
   }
 
   const handleReject = () => {
-    setRejectedChanges([...rejectedChanges, changes[currentIndex]])
-    moveToNext()
+    const nextIdx = currentChangeIndex + 1
+    setRejectedChanges([...rejectedChanges, changes[currentChangeIndex]])
+    if (nextIdx < changes.length) {
+      setCurrentChangeIndex(nextIdx)
+    } else {
+      setStep('complete')
+    }
   }
 
   const handleApplyAll = async () => {
@@ -460,10 +480,14 @@ export function ApplyChanges() {
   }
 
   if (step === 'review') {
-    const currentChange = changes[currentIndex]
-    const currentStandardized = standardizedChanges[currentIndex]
+    const remainingIndices = getRemainingIndices()
+    const displayIndex = reviewMode === 'remaining' ? (remainingIndices[currentIndex] ?? remainingIndices[0]) : currentChangeIndex
+    const currentChange = changes[displayIndex]
+    const currentStandardized = standardizedChanges[displayIndex]
     const actionStyle = getActionLabel(currentStandardized?.action || currentChange.type)
-    const isAlreadyApplied = alreadyApplied[currentIndex]
+    const isAlreadyApplied = alreadyApplied[displayIndex]
+    const isAppliedByUser = appliedChanges.some((a) => a.key === currentChange.key)
+    const isRejectedByUser = rejectedChanges.some((r) => r.key === currentChange.key)
     const actionCounts = getActionCounts(standardizedChanges)
 
     return (
@@ -475,10 +499,37 @@ export function ApplyChanges() {
               {t('applyChanges.reviewChanges')}
             </CardTitle>
             <CardDescription className="text-base">
-              {t('applyChanges.changeNumber', { current: currentIndex + 1, total: changes.length })}
+              {reviewMode === 'remaining'
+                ? `${remainingIndices.length} ${t('applyChanges.remainingChanges')}`
+                : t('applyChanges.changeNumber', { current: currentChangeIndex + 1, total: changes.length })}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={reviewMode === 'remaining' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => {
+                  setReviewMode('remaining')
+                  setCurrentIndex(0)
+                  setCurrentChangeIndex(remainingIndices[0] ?? 0)
+                }}
+              >
+                {t('applyChanges.reviewRemaining')} ({remainingIndices.length})
+              </Button>
+              <Button
+                variant={reviewMode === 'all' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => {
+                  setReviewMode('all')
+                  setCurrentIndex(0)
+                  setCurrentChangeIndex(0)
+                }}
+              >
+                {t('applyChanges.reviewAll')} ({changes.length})
+              </Button>
+            </div>
+
             <div className="rounded-lg border bg-muted/40 p-4">
               <p className="text-sm text-muted-foreground mb-2">{t('applyChanges.changesSummaryTitle')}</p>
               <div className="flex flex-wrap gap-2 text-sm">
@@ -584,8 +635,37 @@ export function ApplyChanges() {
               </div>
             )}
 
-            {isAlreadyApplied ? (
-              <Button className="w-full h-12 text-base" onClick={moveToNext}>
+            {isAppliedByUser && (
+              <div className="rounded-md border border-green-300 bg-green-50 p-4 text-green-700 text-base">
+                {t('applyChanges.appliedByUser')}
+              </div>
+            )}
+
+            {isRejectedByUser && (
+              <div className="rounded-md border border-red-300 bg-red-50 p-4 text-red-700 text-base">
+                {t('applyChanges.rejectedByUser')}
+              </div>
+            )}
+
+            {isAlreadyApplied || reviewMode === 'remaining' ? (
+              <Button className="w-full h-12 text-base" onClick={() => {
+                if (reviewMode === 'remaining') {
+                  const nextIdx = currentIndex + 1
+                  if (nextIdx < remainingIndices.length) {
+                    setCurrentIndex(nextIdx)
+                    setCurrentChangeIndex(remainingIndices[nextIdx])
+                  } else {
+                    setStep('complete')
+                  }
+                } else {
+                  const nextIdx = currentChangeIndex + 1
+                  if (nextIdx < changes.length) {
+                    setCurrentChangeIndex(nextIdx)
+                  } else {
+                    setStep('complete')
+                  }
+                }
+              }} disabled={reviewMode === 'remaining' ? currentIndex >= remainingIndices.length - 1 : currentChangeIndex >= changes.length - 1}>
                 <ArrowRight className="h-4 w-4 mr-2" />
                 {t('applyChanges.nextChange')}
               </Button>
@@ -603,6 +683,18 @@ export function ApplyChanges() {
                   {t('applyChanges.applyAll')}
                 </Button>
               </div>
+            )}
+
+            {reviewMode === 'remaining' && remainingIndices.length > 0 && (
+              <Button
+                variant="secondary"
+                className="w-full h-12 text-base"
+                onClick={handleApplyAll}
+                disabled={loading}
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                {t('applyChanges.applyAllRemaining')} ({remainingIndices.length})
+              </Button>
             )}
 
             <Button variant="outline" className="w-full h-12 text-base" onClick={handleAbort} disabled={loading}>
