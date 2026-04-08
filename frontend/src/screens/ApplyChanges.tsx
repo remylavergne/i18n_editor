@@ -37,7 +37,6 @@ export function ApplyChanges() {
   const [backupFilePath, setBackupFilePath] = useState('')
   const [isContextImageOpen, setIsContextImageOpen] = useState(false)
   const [reviewMode, setReviewMode] = useState<'remaining' | 'all'>('remaining')
-  const [currentChangeIndex, setCurrentChangeIndex] = useState(0)
 
   const getActionLabel = (action: string) => {
     switch (action) {
@@ -196,20 +195,19 @@ export function ApplyChanges() {
     }
   }
 
-  const moveToNext = (remainingCount: number) => {
-    if (currentIndex < remainingCount - 1) {
-      setCurrentIndex(currentIndex + 1)
-    } else {
-      setStep('complete')
-    }
-  }
-
   const getRemainingIndices = () => {
     return changes
       .map((_, i) => i)
       .filter((i) => {
         return !alreadyApplied[i] && !appliedChanges.some((a) => a.key === changes[i].key) && !rejectedChanges.some((r) => r.key === changes[i].key)
       })
+  }
+
+  const getDisplayIndex = (remainingIndices: number[]) => {
+    if (reviewMode === 'remaining') {
+      return remainingIndices[currentIndex] ?? -1
+    }
+    return currentIndex
   }
 
   const handleApply = () => {
@@ -223,7 +221,13 @@ export function ApplyChanges() {
           setBackupFilePath(createdBackupPath)
         }
 
-        const change = changes[currentChangeIndex]
+        const remainingIndices = getRemainingIndices()
+        const displayIndex = getDisplayIndex(remainingIndices)
+        const change = changes[displayIndex]
+        if (!change) {
+          setStep('complete')
+          return
+        }
         const overrideValue = overrides[change.key]
         const newValue = overrideValue || change.newValue
 
@@ -235,17 +239,19 @@ export function ApplyChanges() {
           line: change.line,
         }), newValue)
 
-        const updatedRemaining = getRemainingIndices()
         setAppliedChanges([...appliedChanges, change])
 
         if (reviewMode === 'remaining') {
-          if (currentIndex >= updatedRemaining.length - 1) {
+          const remainingAfterApply = remainingIndices.filter((index) => index !== displayIndex)
+          if (remainingAfterApply.length === 0) {
             setStep('complete')
+          } else if (currentIndex >= remainingAfterApply.length) {
+            setCurrentIndex(remainingAfterApply.length - 1)
           }
         } else {
-          const nextIdx = currentChangeIndex + 1
+          const nextIdx = currentIndex + 1
           if (nextIdx < changes.length) {
-            setCurrentChangeIndex(nextIdx)
+            setCurrentIndex(nextIdx)
           } else {
             setStep('complete')
           }
@@ -262,17 +268,27 @@ export function ApplyChanges() {
   }
 
   const handleReject = () => {
-    const updatedRemaining = getRemainingIndices()
-    setRejectedChanges([...rejectedChanges, changes[currentChangeIndex]])
+    const remainingIndices = getRemainingIndices()
+    const displayIndex = getDisplayIndex(remainingIndices)
+    const change = changes[displayIndex]
+    if (!change) {
+      setStep('complete')
+      return
+    }
+
+    setRejectedChanges([...rejectedChanges, change])
 
     if (reviewMode === 'remaining') {
-      if (currentIndex >= updatedRemaining.length - 1) {
+      const remainingAfterReject = remainingIndices.filter((index) => index !== displayIndex)
+      if (remainingAfterReject.length === 0) {
         setStep('complete')
+      } else if (currentIndex >= remainingAfterReject.length) {
+        setCurrentIndex(remainingAfterReject.length - 1)
       }
     } else {
-      const nextIdx = currentChangeIndex + 1
+      const nextIdx = currentIndex + 1
       if (nextIdx < changes.length) {
-        setCurrentChangeIndex(nextIdx)
+        setCurrentIndex(nextIdx)
       } else {
         setStep('complete')
       }
@@ -293,24 +309,36 @@ export function ApplyChanges() {
       const appliedSet = new Set(appliedChanges.map((change) => change.key))
       const rejectedSet = new Set(rejectedChanges.map((change) => change.key))
 
-      const remainingToApply = changes.filter((change, index) => {
-        if (index < currentIndex) {
-          return false
-        }
-        if (alreadyApplied[index]) {
-          return false
-        }
-        if (appliedSet.has(change.key)) {
-          return false
-        }
-        if (rejectedSet.has(change.key)) {
-          return false
-        }
-        return true
-      })
+      const indicesToApply = reviewMode === 'remaining'
+        ? getRemainingIndices()
+        : changes
+            .map((_, index) => index)
+            .filter((index) => {
+              if (index < currentIndex) return false
+              if (alreadyApplied[index]) return false
+              if (appliedSet.has(changes[index].key)) return false
+              if (rejectedSet.has(changes[index].key)) return false
+              return true
+            })
 
-      setAppliedChanges([...appliedChanges, ...remainingToApply])
-      setCurrentIndex(changes.length - 1)
+      const appliedNow: DiffChange[] = []
+      for (const index of indicesToApply) {
+        const change = changes[index]
+        const overrideValue = overrides[change.key]
+        const newValue = overrideValue || change.newValue
+
+        await ApplyChangeToJson(targetFile, main.DiffChange.createFrom({
+          type: change.type,
+          key: change.key,
+          oldValue: change.oldValue,
+          newValue,
+          line: change.line,
+        }), newValue)
+
+        appliedNow.push(change)
+      }
+
+      setAppliedChanges([...appliedChanges, ...appliedNow])
       setStep('complete')
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err)
@@ -321,7 +349,12 @@ export function ApplyChanges() {
   }
 
   const handleOverrideChange = (value: string) => {
-    const currentChange = changes[currentIndex]
+    const remainingIndices = getRemainingIndices()
+    const displayIndex = getDisplayIndex(remainingIndices)
+    const currentChange = changes[displayIndex]
+    if (!currentChange) {
+      return
+    }
     setOverrides({
       ...overrides,
       [currentChange.key]: value,
@@ -509,7 +542,10 @@ export function ApplyChanges() {
 
   if (step === 'review') {
     const remainingIndices = getRemainingIndices()
-    const displayIndex = reviewMode === 'remaining' ? (remainingIndices[currentIndex] ?? remainingIndices[0]) : currentChangeIndex
+    const displayIndex = getDisplayIndex(remainingIndices)
+    if (displayIndex < 0 || !changes[displayIndex]) {
+      return null
+    }
     const currentChange = changes[displayIndex]
     const currentStandardized = standardizedChanges[displayIndex]
     const actionStyle = getActionLabel(currentStandardized?.action || currentChange.type)
@@ -529,7 +565,7 @@ export function ApplyChanges() {
             <CardDescription className="text-base">
               {reviewMode === 'remaining'
                 ? `${remainingIndices.length} ${t('applyChanges.remainingChanges')}`
-                : t('applyChanges.changeNumber', { current: currentChangeIndex + 1, total: changes.length })}
+                : t('applyChanges.changeNumber', { current: currentIndex + 1, total: changes.length })}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -540,7 +576,6 @@ export function ApplyChanges() {
                 onClick={() => {
                   setReviewMode('remaining')
                   setCurrentIndex(0)
-                  setCurrentChangeIndex(remainingIndices[0] ?? 0)
                 }}
               >
                 {t('applyChanges.reviewRemaining')} ({remainingIndices.length})
@@ -551,7 +586,6 @@ export function ApplyChanges() {
                 onClick={() => {
                   setReviewMode('all')
                   setCurrentIndex(0)
-                  setCurrentChangeIndex(0)
                 }}
               >
                 {t('applyChanges.reviewAll')} ({changes.length})
@@ -681,19 +715,18 @@ export function ApplyChanges() {
                   const nextIdx = currentIndex + 1
                   if (nextIdx < remainingIndices.length) {
                     setCurrentIndex(nextIdx)
-                    setCurrentChangeIndex(remainingIndices[nextIdx])
                   } else {
                     setStep('complete')
                   }
                 } else {
-                  const nextIdx = currentChangeIndex + 1
+                  const nextIdx = currentIndex + 1
                   if (nextIdx < changes.length) {
-                    setCurrentChangeIndex(nextIdx)
+                    setCurrentIndex(nextIdx)
                   } else {
                     setStep('complete')
                   }
                 }
-              }} disabled={reviewMode === 'remaining' ? currentIndex >= remainingIndices.length - 1 : currentChangeIndex >= changes.length - 1}>
+              }} disabled={reviewMode === 'remaining' ? currentIndex >= remainingIndices.length - 1 : currentIndex >= changes.length - 1}>
                 <ArrowRight className="h-4 w-4 mr-2" />
                 {t('applyChanges.nextChange')}
               </Button>
