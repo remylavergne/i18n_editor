@@ -2,9 +2,25 @@
   "app": {
     "title": "i18n Editor",
     "createDiff": "Diff maken",
+    "syncLocal": "Lokale i18n synchroniseren",
     "applyChanges": "Wijzigingen toepassen",
     "editApplied": "Toegepaste labels bewerken",
     "i18nChecks": "I18n Controle"
+  },
+  "syncLocal": {
+    "title": "Lokale i18n synchroniseren vanuit client",
+    "description": "Werk lokale FR/NL-waarden bij vanuit client FR/NL-bestanden. Alleen bestaande lokale sleutels worden bijgewerkt; er worden geen sleutels toegevoegd of verwijderd.",
+    "localFolder": "Lokale map (bevat fr.json en nl.json)",
+    "clientFolder": "Clientmap (bevat fr.json en nl.json)",
+    "localFolderPlaceholder": "/pad/naar/lokale/i18n",
+    "clientFolderPlaceholder": "/pad/naar/client/i18n",
+    "selectLocalFolder": "Selecteer lokale map",
+    "selectClientFolder": "Selecteer clientmap",
+    "syncButton": "Lokale bestanden bijwerken",
+    "syncing": "Bijwerken...",
+    "selectFolderError": "Map selecteren mislukt",
+    "missingFileError": "Vereist bestand ontbreekt in {{scope}} map: {{file}}",
+    "success": "Bijwerken voltooid. FR bijgewerkt: {{frCount}} sleutel(s), NL bijgewerkt: {{nlCount}} sleutel(s)."
   },
   "i18nChecks": {
     "title": "I18n sleutelcontrole",

@@ -6,11 +6,12 @@ import { CreateDiff } from './screens/CreateDiff'
 import { ApplyChanges } from './screens/ApplyChanges'
 import { EditAppliedChanges } from './screens/EditAppliedChanges'
 import { I18nChecks } from './screens/I18nChecks'
-import { FileDiff, FileSpreadsheet, PencilLine, AlertTriangle, Languages } from 'lucide-react'
+import { SyncLocalI18n } from './screens/SyncLocalI18n'
+import { FileDiff, FileSpreadsheet, PencilLine, AlertTriangle, Languages, RefreshCcw } from 'lucide-react'
 
 import './i18n'
 
-type Screen = 'create-diff' | 'apply-changes' | 'edit-applied' | 'i18n-checks'
+type Screen = 'create-diff' | 'apply-changes' | 'edit-applied' | 'i18n-checks' | 'sync-local'
 
 interface ErrorInfo {
   message: string
@@ -115,6 +116,14 @@ function App() {
                 {t('app.createDiff')}
               </Button>
               <Button
+                variant={currentScreen === 'sync-local' ? 'default' : 'ghost'}
+                onClick={() => setCurrentScreen('sync-local')}
+                className="gap-2"
+              >
+                <RefreshCcw className="h-4 w-4" />
+                {t('app.syncLocal')}
+              </Button>
+              <Button
                 variant={currentScreen === 'apply-changes' ? 'default' : 'ghost'}
                 onClick={() => setCurrentScreen('apply-changes')}
                 className="gap-2"
@@ -137,6 +146,7 @@ function App() {
 
         <main>
           {currentScreen === 'create-diff' && <CreateDiff />}
+          {currentScreen === 'sync-local' && <SyncLocalI18n />}
           {currentScreen === 'apply-changes' && <ApplyChanges />}
           {currentScreen === 'edit-applied' && <EditAppliedChanges />}
           {currentScreen === 'i18n-checks' && <I18nChecks />}

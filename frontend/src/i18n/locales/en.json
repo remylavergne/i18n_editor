@@ -2,9 +2,25 @@
   "app": {
     "title": "i18n Editor",
     "createDiff": "Create Diff",
+    "syncLocal": "Sync Local i18n",
     "applyChanges": "Apply Changes",
     "editApplied": "Edit Applied",
     "i18nChecks": "I18n Checks"
+  },
+  "syncLocal": {
+    "title": "Sync Local i18n From Client",
+    "description": "Update local FR/NL values from client FR/NL files. Only existing local keys are updated; no keys are added or deleted.",
+    "localFolder": "Local folder (contains fr.json and nl.json)",
+    "clientFolder": "Client folder (contains fr.json and nl.json)",
+    "localFolderPlaceholder": "/path/to/local/i18n",
+    "clientFolderPlaceholder": "/path/to/client/i18n",
+    "selectLocalFolder": "Select local folder",
+    "selectClientFolder": "Select client folder",
+    "syncButton": "Update local files",
+    "syncing": "Updating...",
+    "selectFolderError": "Failed to select folder",
+    "missingFileError": "Missing required file in {{scope}} folder: {{file}}",
+    "success": "Update complete. FR updated: {{frCount}} key(s), NL updated: {{nlCount}} key(s)."
   },
   "i18nChecks": {
     "title": "I18n Keys Check",

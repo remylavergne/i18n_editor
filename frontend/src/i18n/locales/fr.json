@@ -2,9 +2,25 @@
   "app": {
     "title": "Éditeur i18n",
     "createDiff": "Créer un diff",
+    "syncLocal": "Synchroniser i18n local",
     "applyChanges": "Appliquer les modifications",
     "editApplied": "Modifier applique",
     "i18nChecks": "Verification i18n"
+  },
+  "syncLocal": {
+    "title": "Synchroniser i18n local depuis le client",
+    "description": "Met a jour les valeurs locales FR/NL depuis les fichiers FR/NL du client. Seules les cles locales existantes sont modifiees; aucune cle n'est ajoutee ou supprimee.",
+    "localFolder": "Dossier local (contient fr.json et nl.json)",
+    "clientFolder": "Dossier client (contient fr.json et nl.json)",
+    "localFolderPlaceholder": "/chemin/vers/i18n/local",
+    "clientFolderPlaceholder": "/chemin/vers/i18n/client",
+    "selectLocalFolder": "Selectionner le dossier local",
+    "selectClientFolder": "Selectionner le dossier client",
+    "syncButton": "Mettre a jour les fichiers locaux",
+    "syncing": "Mise a jour...",
+    "selectFolderError": "Echec de la selection du dossier",
+    "missingFileError": "Fichier requis manquant dans le dossier {{scope}} : {{file}}",
+    "success": "Mise a jour terminee. FR mis a jour : {{frCount}} cle(s), NL mis a jour : {{nlCount}} cle(s)."
   },
   "i18nChecks": {
     "title": "Verification des cles i18n",
