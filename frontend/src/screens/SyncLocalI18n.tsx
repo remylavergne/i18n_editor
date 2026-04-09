@@ -8,12 +8,15 @@ import { AlertCircle, CheckCircle, FolderOpen, RefreshCcw } from 'lucide-react'
 import { OpenDirectoryDialog, ReadJsonFile, WriteJsonFile } from '../../wailsjs/go/main/App'
 
 type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue }
+type DecisionStatus = 'pending' | 'applied' | 'rejected'
 
 interface SyncUpdateRow {
+  id: string
   language: 'fr' | 'nl'
   path: string
   oldValue: JsonValue
   newValue: JsonValue
+  status: DecisionStatus
 }
 
 function joinPath(dir: string, fileName: string) {
@@ -49,8 +52,8 @@ function collectLeafValues(value: JsonValue, basePath = '', out: Map<string, Jso
   }
 }
 
-function deepClone(value: JsonValue): JsonValue {
-  return JSON.parse(JSON.stringify(value)) as JsonValue
+function deepClone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T
 }
 
 function isDeepEqual(a: JsonValue, b: JsonValue) {
@@ -67,64 +70,53 @@ function formatJsonValue(value: JsonValue) {
   return JSON.stringify(value)
 }
 
-function updateLocalLeavesOnly(
-  localValue: JsonValue,
-  clientLeaves: Map<string, JsonValue>,
-  language: 'fr' | 'nl',
-  basePath = '',
-): { value: JsonValue; updates: number; rows: SyncUpdateRow[] } {
-  if (localValue !== null && typeof localValue === 'object' && !Array.isArray(localValue)) {
-    const obj = localValue as Record<string, JsonValue>
-    const keys = Object.keys(obj)
-    if (keys.length === 0) {
-      if (basePath && clientLeaves.has(basePath)) {
-        const next = clientLeaves.get(basePath) as JsonValue
-        if (!isDeepEqual(localValue, next)) {
-          return {
-            value: deepClone(next),
-            updates: 1,
-            rows: [{ language, path: basePath, oldValue: deepClone(localValue), newValue: deepClone(next) }],
-          }
-        }
-      }
-      return { value: localValue, updates: 0, rows: [] }
-    }
-
-    const updatedObj: Record<string, JsonValue> = {}
-    let updates = 0
-    const rows: SyncUpdateRow[] = []
-    for (const key of keys) {
-      const nextPath = basePath ? `${basePath}.${key}` : key
-      const result = updateLocalLeavesOnly(obj[key], clientLeaves, language, nextPath)
-      updatedObj[key] = result.value
-      updates += result.updates
-      rows.push(...result.rows)
-    }
-    return { value: updatedObj, updates, rows }
+function setNestedValue(root: JsonValue, path: string, value: JsonValue): JsonValue {
+  if (root === null || typeof root !== 'object' || Array.isArray(root)) {
+    return root
   }
 
-  if (basePath && clientLeaves.has(basePath)) {
-    const next = clientLeaves.get(basePath) as JsonValue
-    if (!isDeepEqual(localValue, next)) {
-      return {
-        value: deepClone(next),
-        updates: 1,
-        rows: [{ language, path: basePath, oldValue: deepClone(localValue), newValue: deepClone(next) }],
-      }
-    }
+  const keys = path.split('.').filter(Boolean)
+  if (keys.length === 0) {
+    return root
   }
 
-  return { value: localValue, updates: 0, rows: [] }
+  let current = root as Record<string, JsonValue>
+  for (let i = 0; i < keys.length - 1; i += 1) {
+    const key = keys[i]
+    const next = current[key]
+    if (next !== null && typeof next === 'object' && !Array.isArray(next)) {
+      current = next as Record<string, JsonValue>
+      continue
+    }
+    return root
+  }
+
+  current[keys[keys.length - 1]] = deepClone(value)
+  return root
+}
+
+function getCounts(rows: SyncUpdateRow[]) {
+  return rows.reduce(
+    (acc, row) => {
+      acc[row.status] += 1
+      return acc
+    },
+    { pending: 0, applied: 0, rejected: 0 },
+  )
 }
 
 export function SyncLocalI18n() {
   const { t } = useTranslation()
   const [localDir, setLocalDir] = useState('')
   const [clientDir, setClientDir] = useState('')
+  const [localFrPath, setLocalFrPath] = useState('')
+  const [localNlPath, setLocalNlPath] = useState('')
+  const [localFrOriginal, setLocalFrOriginal] = useState<JsonValue | null>(null)
+  const [localNlOriginal, setLocalNlOriginal] = useState<JsonValue | null>(null)
+  const [rows, setRows] = useState<SyncUpdateRow[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const [updateRows, setUpdateRows] = useState<SyncUpdateRow[]>([])
 
   const handleSelectLocalDir = async () => {
     try {
@@ -156,7 +148,7 @@ export function SyncLocalI18n() {
     }
   }
 
-  const handleSync = async () => {
+  const handleLoadUpdates = async () => {
     if (!localDir || !clientDir) {
       setError(t('errors.fillAllFields'))
       return
@@ -165,63 +157,167 @@ export function SyncLocalI18n() {
     setLoading(true)
     setError('')
     setSuccess('')
-    setUpdateRows([])
+    setRows([])
 
     try {
-      const localFrPath = joinPath(localDir, 'fr.json')
-      const localNlPath = joinPath(localDir, 'nl.json')
+      const nextLocalFrPath = joinPath(localDir, 'fr.json')
+      const nextLocalNlPath = joinPath(localDir, 'nl.json')
       const clientFrPath = joinPath(clientDir, 'fr.json')
       const clientNlPath = joinPath(clientDir, 'nl.json')
 
-      const [localFr, localNl, clientFr, clientNl] = await Promise.all([
-        readRequiredJson(localFrPath, 'local'),
-        readRequiredJson(localNlPath, 'local'),
+      const [localFrRaw, localNlRaw, clientFrRaw, clientNlRaw] = await Promise.all([
+        readRequiredJson(nextLocalFrPath, 'local'),
+        readRequiredJson(nextLocalNlPath, 'local'),
         readRequiredJson(clientFrPath, 'client'),
         readRequiredJson(clientNlPath, 'client'),
       ])
 
+      const localFr = localFrRaw as JsonValue
+      const localNl = localNlRaw as JsonValue
+      const clientFr = clientFrRaw as JsonValue
+      const clientNl = clientNlRaw as JsonValue
+
+      const localFrLeaves = new Map<string, JsonValue>()
+      const localNlLeaves = new Map<string, JsonValue>()
       const clientFrLeaves = new Map<string, JsonValue>()
       const clientNlLeaves = new Map<string, JsonValue>()
-      collectLeafValues(clientFr as JsonValue, '', clientFrLeaves)
-      collectLeafValues(clientNl as JsonValue, '', clientNlLeaves)
+      collectLeafValues(localFr, '', localFrLeaves)
+      collectLeafValues(localNl, '', localNlLeaves)
+      collectLeafValues(clientFr, '', clientFrLeaves)
+      collectLeafValues(clientNl, '', clientNlLeaves)
 
-      const updatedFr = updateLocalLeavesOnly(localFr as JsonValue, clientFrLeaves, 'fr')
-      const updatedNl = updateLocalLeavesOnly(localNl as JsonValue, clientNlLeaves, 'nl')
+      const nextRows: SyncUpdateRow[] = []
+      for (const [path, oldValue] of localFrLeaves) {
+        const clientValue = clientFrLeaves.get(path)
+        if (typeof clientValue === 'undefined') {
+          continue
+        }
+        if (!isDeepEqual(oldValue, clientValue)) {
+          nextRows.push({
+            id: `fr:${path}`,
+            language: 'fr',
+            path,
+            oldValue: deepClone(oldValue),
+            newValue: deepClone(clientValue),
+            status: 'pending',
+          })
+        }
+      }
 
-      await Promise.all([
-        WriteJsonFile(localFrPath, updatedFr.value as Record<string, unknown>),
-        WriteJsonFile(localNlPath, updatedNl.value as Record<string, unknown>),
-      ])
+      for (const [path, oldValue] of localNlLeaves) {
+        const clientValue = clientNlLeaves.get(path)
+        if (typeof clientValue === 'undefined') {
+          continue
+        }
+        if (!isDeepEqual(oldValue, clientValue)) {
+          nextRows.push({
+            id: `nl:${path}`,
+            language: 'nl',
+            path,
+            oldValue: deepClone(oldValue),
+            newValue: deepClone(clientValue),
+            status: 'pending',
+          })
+        }
+      }
 
-      const mergedRows = [...updatedFr.rows, ...updatedNl.rows].sort((a, b) => {
+      nextRows.sort((a, b) => {
         const pathCompare = a.path.localeCompare(b.path)
         if (pathCompare !== 0) {
           return pathCompare
         }
         return a.language.localeCompare(b.language)
       })
-      setUpdateRows(mergedRows)
-      setSuccess(t('syncLocal.success', { frCount: updatedFr.updates, nlCount: updatedNl.updates }))
+
+      setLocalFrPath(nextLocalFrPath)
+      setLocalNlPath(nextLocalNlPath)
+      setLocalFrOriginal(deepClone(localFr))
+      setLocalNlOriginal(deepClone(localNl))
+      setRows(nextRows)
+
+      if (nextRows.length === 0) {
+        setSuccess(t('syncLocal.noUpdates'))
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err)
       setError(message)
-      setUpdateRows([])
     } finally {
       setLoading(false)
     }
   }
 
+  const updateStatus = (id: string, status: DecisionStatus) => {
+    setRows((prev) => prev.map((row) => (row.id === id ? { ...row, status } : row)))
+  }
+
+  const handleApplyAll = () => {
+    setRows((prev) => prev.map((row) => (row.status === 'pending' ? { ...row, status: 'applied' } : row)))
+  }
+
+  const handleRejectAll = () => {
+    setRows((prev) => prev.map((row) => (row.status === 'pending' ? { ...row, status: 'rejected' } : row)))
+  }
+
+  const handleSaveApplied = async () => {
+    if (!localFrOriginal || !localNlOriginal || !localFrPath || !localNlPath) {
+      setError(t('syncLocal.loadFirstError'))
+      return
+    }
+
+    const appliedRows = rows.filter((row) => row.status === 'applied')
+    if (appliedRows.length === 0) {
+      setError(t('syncLocal.noAppliedError'))
+      return
+    }
+
+    setLoading(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      const nextFr = deepClone(localFrOriginal)
+      const nextNl = deepClone(localNlOriginal)
+
+      for (const row of appliedRows) {
+        if (row.language === 'fr') {
+          setNestedValue(nextFr, row.path, row.newValue)
+        } else {
+          setNestedValue(nextNl, row.path, row.newValue)
+        }
+      }
+
+      await Promise.all([
+        WriteJsonFile(localFrPath, nextFr as Record<string, unknown>),
+        WriteJsonFile(localNlPath, nextNl as Record<string, unknown>),
+      ])
+
+      const counts = getCounts(rows)
+      setSuccess(
+        t('syncLocal.applySuccess', {
+          applied: counts.applied,
+          rejected: counts.rejected,
+          pending: counts.pending,
+        }),
+      )
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err)
+      setError(message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const counts = getCounts(rows)
+
   return (
-    <div className="container mx-auto py-10 max-w-4xl px-4">
+    <div className="container mx-auto py-10 max-w-5xl px-4">
       <Card className="border-2">
         <CardHeader className="space-y-3">
           <CardTitle className="text-2xl flex items-center gap-3">
             <RefreshCcw className="h-6 w-6" />
             {t('syncLocal.title')}
           </CardTitle>
-          <CardDescription className="text-base">
-            {t('syncLocal.description')}
-          </CardDescription>
+          <CardDescription className="text-base">{t('syncLocal.description')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="space-y-2">
@@ -256,8 +352,8 @@ export function SyncLocalI18n() {
             </div>
           </div>
 
-          <Button className="w-full h-12 text-base" onClick={handleSync} disabled={loading}>
-            {loading ? t('syncLocal.syncing') : t('syncLocal.syncButton')}
+          <Button className="w-full h-12 text-base" onClick={handleLoadUpdates} disabled={loading}>
+            {loading ? t('syncLocal.loadingUpdates') : t('syncLocal.loadUpdatesButton')}
           </Button>
 
           {error && (
@@ -274,14 +370,41 @@ export function SyncLocalI18n() {
             </div>
           )}
 
-          {updateRows.length > 0 && (
-            <div className="space-y-2">
-              <Label className="text-base">{t('syncLocal.updatedListTitle', { count: updateRows.length })}</Label>
-              <div className="max-h-80 overflow-y-auto rounded border bg-muted/30 p-3 space-y-3">
-                {updateRows.map((row) => (
-                  <div key={`${row.language}:${row.path}`} className="rounded border bg-background p-3 space-y-1">
-                    <div className="text-xs text-muted-foreground">{row.language.toUpperCase()}</div>
-                    <div className="text-sm font-mono break-all">{row.path}</div>
+          {rows.length > 0 && (
+            <>
+              <div className="rounded-lg border bg-muted/40 p-4 text-sm">
+                {t('syncLocal.summary', {
+                  total: rows.length,
+                  applied: counts.applied,
+                  rejected: counts.rejected,
+                  pending: counts.pending,
+                })}
+              </div>
+
+              <div className="max-h-96 overflow-y-auto rounded border bg-muted/30 p-3 space-y-3">
+                {rows.map((row) => (
+                  <div key={row.id} className="rounded border bg-background p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-xs text-muted-foreground">{row.language.toUpperCase()}</div>
+                        <div className="text-sm font-mono break-all">{row.path}</div>
+                      </div>
+                      <span
+                        className={
+                          row.status === 'applied'
+                            ? 'text-xs px-2 py-1 rounded bg-green-100 text-green-800'
+                            : row.status === 'rejected'
+                              ? 'text-xs px-2 py-1 rounded bg-red-100 text-red-800'
+                              : 'text-xs px-2 py-1 rounded bg-amber-100 text-amber-800'
+                        }
+                      >
+                        {row.status === 'applied'
+                          ? t('syncLocal.statusApplied')
+                          : row.status === 'rejected'
+                            ? t('syncLocal.statusRejected')
+                            : t('syncLocal.statusPending')}
+                      </span>
+                    </div>
                     <div className="text-sm">
                       <span className="font-semibold">{t('syncLocal.oldValueLabel')}: </span>
                       <span className="font-mono break-all">{formatJsonValue(row.oldValue)}</span>
@@ -290,10 +413,30 @@ export function SyncLocalI18n() {
                       <span className="font-semibold">{t('syncLocal.newValueLabel')}: </span>
                       <span className="font-mono break-all">{formatJsonValue(row.newValue)}</span>
                     </div>
+                    <div className="flex gap-2 pt-1">
+                      <Button size="sm" variant="outline" onClick={() => updateStatus(row.id, 'applied')}>
+                        {t('syncLocal.applyChangeButton')}
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => updateStatus(row.id, 'rejected')}>
+                        {t('syncLocal.rejectChangeButton')}
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
-            </div>
+
+              <div className="flex gap-3">
+                <Button className="flex-1" variant="outline" onClick={handleApplyAll} disabled={loading || counts.pending === 0}>
+                  {t('syncLocal.applyAllButton')}
+                </Button>
+                <Button className="flex-1" variant="outline" onClick={handleRejectAll} disabled={loading || counts.pending === 0}>
+                  {t('syncLocal.rejectAllButton')}
+                </Button>
+                <Button className="flex-1" onClick={handleSaveApplied} disabled={loading || counts.applied === 0}>
+                  {loading ? t('syncLocal.syncing') : t('syncLocal.syncButton')}
+                </Button>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
