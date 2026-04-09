@@ -211,6 +211,26 @@ func (a *App) GenerateI18nDiff(repoPath, sourceBranch, targetBranch, frFilePath,
 		return I18nDiffResult{}, fmt.Errorf("repository path does not exist: %w", err)
 	}
 
+	localFRPath := filepath.Join(repoPath, filepath.FromSlash(frFilePath))
+	localNLPath := filepath.Join(repoPath, filepath.FromSlash(nlFilePath))
+
+	localFRJSON, err := a.ReadJsonFile(localFRPath)
+	if err != nil {
+		return I18nDiffResult{}, fmt.Errorf("failed to read local FR file '%s': %w", frFilePath, err)
+	}
+	localNLJSON, err := a.ReadJsonFile(localNLPath)
+	if err != nil {
+		return I18nDiffResult{}, fmt.Errorf("failed to read local NL file '%s': %w", nlFilePath, err)
+	}
+
+	localFRPaths := getJSONLeafPaths(localFRJSON)
+	localNLPaths := getJSONLeafPaths(localNLJSON)
+	missingInNL := getMissingKeys(localFRPaths, localNLPaths)
+	missingInFR := getMissingKeys(localNLPaths, localFRPaths)
+	if len(missingInNL) > 0 || len(missingInFR) > 0 {
+		return I18nDiffResult{}, buildAlignmentError("local files", frFilePath, nlFilePath, missingInNL, missingInFR)
+	}
+
 	sourceFRJSON, err := getJSONAtBranch(repoPath, sourceBranch, frFilePath)
 	if err != nil {
 		return I18nDiffResult{}, err
@@ -226,22 +246,6 @@ func (a *App) GenerateI18nDiff(repoPath, sourceBranch, targetBranch, frFilePath,
 	targetNLJSON, err := getJSONAtBranch(repoPath, targetBranch, nlFilePath)
 	if err != nil {
 		return I18nDiffResult{}, err
-	}
-
-	sourceFRPaths := getJSONLeafPaths(sourceFRJSON)
-	sourceNLPaths := getJSONLeafPaths(sourceNLJSON)
-	sourceMissingInNL := getMissingKeys(sourceFRPaths, sourceNLPaths)
-	sourceMissingInFR := getMissingKeys(sourceNLPaths, sourceFRPaths)
-	if len(sourceMissingInNL) > 0 || len(sourceMissingInFR) > 0 {
-		return I18nDiffResult{}, buildAlignmentError(sourceBranch, frFilePath, nlFilePath, sourceMissingInNL, sourceMissingInFR)
-	}
-
-	targetFRPaths := getJSONLeafPaths(targetFRJSON)
-	targetNLPaths := getJSONLeafPaths(targetNLJSON)
-	targetMissingInNL := getMissingKeys(targetFRPaths, targetNLPaths)
-	targetMissingInFR := getMissingKeys(targetNLPaths, targetFRPaths)
-	if len(targetMissingInNL) > 0 || len(targetMissingInFR) > 0 {
-		return I18nDiffResult{}, buildAlignmentError(targetBranch, frFilePath, nlFilePath, targetMissingInNL, targetMissingInFR)
 	}
 
 	frDiff, err := a.GitDiffBranches(repoPath, sourceBranch, targetBranch, frFilePath)
@@ -655,7 +659,7 @@ func getMissingKeys(source, target map[string]struct{}) []string {
 	return missing
 }
 
-func buildAlignmentError(branch, frFilePath, nlFilePath string, missingInNL, missingInFR []string) error {
+func buildAlignmentError(scope, frFilePath, nlFilePath string, missingInNL, missingInFR []string) error {
 	maxList := 20
 	formatList := func(keys []string) string {
 		if len(keys) == 0 {
@@ -668,8 +672,8 @@ func buildAlignmentError(branch, frFilePath, nlFilePath string, missingInNL, mis
 	}
 
 	return fmt.Errorf(
-		"i18n files are not aligned on branch '%s'. Missing in NL (%s -> %s): %s. Missing in FR (%s -> %s): %s",
-		branch,
+		"i18n files are not aligned in %s. Missing in NL (%s -> %s): %s. Missing in FR (%s -> %s): %s",
+		scope,
 		frFilePath,
 		nlFilePath,
 		formatList(missingInNL),
