@@ -20,7 +20,10 @@
     "syncing": "Updating...",
     "selectFolderError": "Failed to select folder",
     "missingFileError": "Missing required file in {{scope}} folder: {{file}}",
-    "success": "Update complete. FR updated: {{frCount}} key(s), NL updated: {{nlCount}} key(s)."
+    "success": "Update complete. FR updated: {{frCount}} key(s), NL updated: {{nlCount}} key(s).",
+    "updatedListTitle": "Updated keys ({{count}})",
+    "oldValueLabel": "Old value",
+    "newValueLabel": "New value"
   },
   "i18nChecks": {
     "title": "I18n Keys Check",

@@ -20,7 +20,10 @@
     "syncing": "Bijwerken...",
     "selectFolderError": "Map selecteren mislukt",
     "missingFileError": "Vereist bestand ontbreekt in {{scope}} map: {{file}}",
-    "success": "Bijwerken voltooid. FR bijgewerkt: {{frCount}} sleutel(s), NL bijgewerkt: {{nlCount}} sleutel(s)."
+    "success": "Bijwerken voltooid. FR bijgewerkt: {{frCount}} sleutel(s), NL bijgewerkt: {{nlCount}} sleutel(s).",
+    "updatedListTitle": "Bijgewerkte sleutels ({{count}})",
+    "oldValueLabel": "Oude waarde",
+    "newValueLabel": "Nieuwe waarde"
   },
   "i18nChecks": {
     "title": "I18n sleutelcontrole",

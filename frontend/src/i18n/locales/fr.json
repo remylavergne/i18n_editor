@@ -20,7 +20,10 @@
     "syncing": "Mise a jour...",
     "selectFolderError": "Echec de la selection du dossier",
     "missingFileError": "Fichier requis manquant dans le dossier {{scope}} : {{file}}",
-    "success": "Mise a jour terminee. FR mis a jour : {{frCount}} cle(s), NL mis a jour : {{nlCount}} cle(s)."
+    "success": "Mise a jour terminee. FR mis a jour : {{frCount}} cle(s), NL mis a jour : {{nlCount}} cle(s).",
+    "updatedListTitle": "Cles mises a jour ({{count}})",
+    "oldValueLabel": "Ancienne valeur",
+    "newValueLabel": "Nouvelle valeur"
   },
   "i18nChecks": {
     "title": "Verification des cles i18n",

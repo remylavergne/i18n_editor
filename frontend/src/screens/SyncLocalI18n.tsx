@@ -9,6 +9,13 @@ import { OpenDirectoryDialog, ReadJsonFile, WriteJsonFile } from '../../wailsjs/
 
 type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue }
 
+interface SyncUpdateRow {
+  language: 'fr' | 'nl'
+  path: string
+  oldValue: JsonValue
+  newValue: JsonValue
+}
+
 function joinPath(dir: string, fileName: string) {
   if (!dir) {
     return fileName
@@ -50,7 +57,22 @@ function isDeepEqual(a: JsonValue, b: JsonValue) {
   return JSON.stringify(a) === JSON.stringify(b)
 }
 
-function updateLocalLeavesOnly(localValue: JsonValue, clientLeaves: Map<string, JsonValue>, basePath = ''): { value: JsonValue; updates: number } {
+function formatJsonValue(value: JsonValue) {
+  if (typeof value === 'string') {
+    return value
+  }
+  if (value === null) {
+    return 'null'
+  }
+  return JSON.stringify(value)
+}
+
+function updateLocalLeavesOnly(
+  localValue: JsonValue,
+  clientLeaves: Map<string, JsonValue>,
+  language: 'fr' | 'nl',
+  basePath = '',
+): { value: JsonValue; updates: number; rows: SyncUpdateRow[] } {
   if (localValue !== null && typeof localValue === 'object' && !Array.isArray(localValue)) {
     const obj = localValue as Record<string, JsonValue>
     const keys = Object.keys(obj)
@@ -58,31 +80,41 @@ function updateLocalLeavesOnly(localValue: JsonValue, clientLeaves: Map<string, 
       if (basePath && clientLeaves.has(basePath)) {
         const next = clientLeaves.get(basePath) as JsonValue
         if (!isDeepEqual(localValue, next)) {
-          return { value: deepClone(next), updates: 1 }
+          return {
+            value: deepClone(next),
+            updates: 1,
+            rows: [{ language, path: basePath, oldValue: deepClone(localValue), newValue: deepClone(next) }],
+          }
         }
       }
-      return { value: localValue, updates: 0 }
+      return { value: localValue, updates: 0, rows: [] }
     }
 
     const updatedObj: Record<string, JsonValue> = {}
     let updates = 0
+    const rows: SyncUpdateRow[] = []
     for (const key of keys) {
       const nextPath = basePath ? `${basePath}.${key}` : key
-      const result = updateLocalLeavesOnly(obj[key], clientLeaves, nextPath)
+      const result = updateLocalLeavesOnly(obj[key], clientLeaves, language, nextPath)
       updatedObj[key] = result.value
       updates += result.updates
+      rows.push(...result.rows)
     }
-    return { value: updatedObj, updates }
+    return { value: updatedObj, updates, rows }
   }
 
   if (basePath && clientLeaves.has(basePath)) {
     const next = clientLeaves.get(basePath) as JsonValue
     if (!isDeepEqual(localValue, next)) {
-      return { value: deepClone(next), updates: 1 }
+      return {
+        value: deepClone(next),
+        updates: 1,
+        rows: [{ language, path: basePath, oldValue: deepClone(localValue), newValue: deepClone(next) }],
+      }
     }
   }
 
-  return { value: localValue, updates: 0 }
+  return { value: localValue, updates: 0, rows: [] }
 }
 
 export function SyncLocalI18n() {
@@ -92,6 +124,7 @@ export function SyncLocalI18n() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [updateRows, setUpdateRows] = useState<SyncUpdateRow[]>([])
 
   const handleSelectLocalDir = async () => {
     try {
@@ -132,6 +165,7 @@ export function SyncLocalI18n() {
     setLoading(true)
     setError('')
     setSuccess('')
+    setUpdateRows([])
 
     try {
       const localFrPath = joinPath(localDir, 'fr.json')
@@ -151,18 +185,27 @@ export function SyncLocalI18n() {
       collectLeafValues(clientFr as JsonValue, '', clientFrLeaves)
       collectLeafValues(clientNl as JsonValue, '', clientNlLeaves)
 
-      const updatedFr = updateLocalLeavesOnly(localFr as JsonValue, clientFrLeaves)
-      const updatedNl = updateLocalLeavesOnly(localNl as JsonValue, clientNlLeaves)
+      const updatedFr = updateLocalLeavesOnly(localFr as JsonValue, clientFrLeaves, 'fr')
+      const updatedNl = updateLocalLeavesOnly(localNl as JsonValue, clientNlLeaves, 'nl')
 
       await Promise.all([
         WriteJsonFile(localFrPath, updatedFr.value as Record<string, unknown>),
         WriteJsonFile(localNlPath, updatedNl.value as Record<string, unknown>),
       ])
 
+      const mergedRows = [...updatedFr.rows, ...updatedNl.rows].sort((a, b) => {
+        const pathCompare = a.path.localeCompare(b.path)
+        if (pathCompare !== 0) {
+          return pathCompare
+        }
+        return a.language.localeCompare(b.language)
+      })
+      setUpdateRows(mergedRows)
       setSuccess(t('syncLocal.success', { frCount: updatedFr.updates, nlCount: updatedNl.updates }))
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err)
       setError(message)
+      setUpdateRows([])
     } finally {
       setLoading(false)
     }
@@ -228,6 +271,28 @@ export function SyncLocalI18n() {
             <div className="flex items-start gap-2 p-4 rounded-md bg-green-100 text-green-800">
               <CheckCircle className="h-5 w-5 mt-0.5" />
               <span className="text-base">{success}</span>
+            </div>
+          )}
+
+          {updateRows.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-base">{t('syncLocal.updatedListTitle', { count: updateRows.length })}</Label>
+              <div className="max-h-80 overflow-y-auto rounded border bg-muted/30 p-3 space-y-3">
+                {updateRows.map((row) => (
+                  <div key={`${row.language}:${row.path}`} className="rounded border bg-background p-3 space-y-1">
+                    <div className="text-xs text-muted-foreground">{row.language.toUpperCase()}</div>
+                    <div className="text-sm font-mono break-all">{row.path}</div>
+                    <div className="text-sm">
+                      <span className="font-semibold">{t('syncLocal.oldValueLabel')}: </span>
+                      <span className="font-mono break-all">{formatJsonValue(row.oldValue)}</span>
+                    </div>
+                    <div className="text-sm">
+                      <span className="font-semibold">{t('syncLocal.newValueLabel')}: </span>
+                      <span className="font-mono break-all">{formatJsonValue(row.newValue)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </CardContent>
