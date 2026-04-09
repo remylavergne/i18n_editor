@@ -82,7 +82,7 @@ export function ApplyChanges() {
           key: item.path,
           oldValue,
           newValue,
-          line: item.source?.line || 0,
+          line: 0,
         }
 
         if (item.action === 'add') {
@@ -694,13 +694,6 @@ export function ApplyChanges() {
                   {actionStyle.label}
                 </span>
               </div>
-
-              {currentStandardized?.source?.file && (
-                <p className="text-sm text-muted-foreground">
-                  {t('applyChanges.sourceFile')}: {currentStandardized.source.file}
-                </p>
-              )}
-
               <div className="rounded-md border bg-background p-3 space-y-3">
                 <p className="text-sm font-semibold">{t('applyChanges.contextTitle')}</p>
                 {currentStandardized?.context?.description && (

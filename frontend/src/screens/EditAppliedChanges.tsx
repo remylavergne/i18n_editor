@@ -124,7 +124,7 @@ export function EditAppliedChanges() {
               key: item.path,
               oldValue: frValues?.oldValue || '',
               newValue: frValues?.newValue || '',
-              line: item.source?.line || 0,
+              line: 0,
             }
           }
 
@@ -134,7 +134,7 @@ export function EditAppliedChanges() {
               key: item.path,
               oldValue: frValues?.oldValue || '',
               newValue: frValues?.newValue || '',
-              line: item.source?.line || 0,
+              line: 0,
             }
           }
 
@@ -144,7 +144,7 @@ export function EditAppliedChanges() {
               key: item.path,
               oldValue: frValues?.oldValue || '',
               newValue: '',
-              line: item.source?.line || 0,
+              line: 0,
             }
           }
 

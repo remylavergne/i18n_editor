@@ -36,22 +36,6 @@ export namespace main {
 	        this.componentName = source["componentName"];
 	    }
 	}
-	export class DiffChangeSource {
-	    file?: string;
-	    hunk?: string;
-	    line: number;
-	
-	    static createFrom(source: any = {}) {
-	        return new DiffChangeSource(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.file = source["file"];
-	        this.hunk = source["hunk"];
-	        this.line = source["line"];
-	    }
-	}
 	export class DiffValue {
 	    oldValue?: string;
 	    newValue?: string;
@@ -73,7 +57,6 @@ export namespace main {
 	    key: string;
 	    values?: Record<string, DiffValue>;
 	    context?: DiffChangeContext;
-	    source: DiffChangeSource;
 	
 	    static createFrom(source: any = {}) {
 	        return new StandardizedDiffChange(source);
@@ -87,7 +70,6 @@ export namespace main {
 	        this.key = source["key"];
 	        this.values = this.convertValues(source["values"], DiffValue, true);
 	        this.context = this.convertValues(source["context"], DiffChangeContext);
-	        this.source = this.convertValues(source["source"], DiffChangeSource);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -142,4 +124,3 @@ export namespace main {
 	}
 
 }
-

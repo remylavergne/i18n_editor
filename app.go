@@ -298,7 +298,6 @@ type StandardizedDiffChange struct {
 	Key      string                 `json:"key"`
 	Values   map[string]DiffValue   `json:"values,omitempty"`
 	Context  *DiffChangeContext     `json:"context,omitempty"`
-	Source   DiffChangeSource       `json:"source"`
 }
 
 type DiffValue struct {
@@ -315,12 +314,6 @@ type DiffChangeContext struct {
 	Description   string `json:"description,omitempty"`
 	ScreenURL     string `json:"screenUrl,omitempty"`
 	ComponentName string `json:"componentName,omitempty"`
-}
-
-type DiffChangeSource struct {
-	File string `json:"file,omitempty"`
-	Hunk string `json:"hunk,omitempty"`
-	Line int    `json:"line"`
 }
 
 func extractLeafKey(path string) string {
@@ -623,7 +616,6 @@ func buildLocalizedChanges(sourceFR, sourceNL, targetFR, targetNL map[string]str
 					NewValue: newNL,
 				},
 			},
-			Source: DiffChangeSource{File: sourceFile, Line: 0},
 		}
 
 		changes = append(changes, change)
@@ -687,62 +679,6 @@ func buildAlignmentError(branch, frFilePath, nlFilePath string, missingInNL, mis
 	)
 }
 
-func mergeLocalizedChanges(changesByLang map[string][]StandardizedDiffChange) []StandardizedDiffChange {
-	type compositeKey struct {
-		Path   string
-		Action StandardizedDiffAction
-	}
-
-	merged := make(map[compositeKey]StandardizedDiffChange)
-	order := make([]compositeKey, 0)
-
-	for lang, changes := range changesByLang {
-		for _, change := range changes {
-			key := compositeKey{Path: change.Path, Action: change.Action}
-			existing, exists := merged[key]
-			if !exists {
-				existing = StandardizedDiffChange{
-					Action:   change.Action,
-					Path:     change.Path,
-					Segments: change.Segments,
-					Key:      change.Key,
-					Values:   map[string]DiffValue{},
-					Source:   change.Source,
-				}
-				order = append(order, key)
-			}
-
-			if existing.Values == nil {
-				existing.Values = map[string]DiffValue{}
-			}
-
-			if value, ok := change.Values[lang]; ok {
-				existing.Values[lang] = value
-			}
-
-			if existing.Source.Line == 0 || (change.Source.Line > 0 && change.Source.Line < existing.Source.Line) {
-				existing.Source = change.Source
-			}
-
-			merged[key] = existing
-		}
-	}
-
-	result := make([]StandardizedDiffChange, 0, len(order))
-	for _, key := range order {
-		result = append(result, merged[key])
-	}
-
-	sort.Slice(result, func(i, j int) bool {
-		if result[i].Path == result[j].Path {
-			return result[i].Action < result[j].Action
-		}
-		return result[i].Path < result[j].Path
-	})
-
-	return result
-}
-
 func parseDiffToStandardChangesForLanguage(diffContent, language string) ([]StandardizedDiffChange, error) {
 	oldEntries := extractDiffSideEntries(diffContent, '-')
 	newEntries := extractDiffSideEntries(diffContent, '+')
@@ -761,11 +697,6 @@ func parseDiffToStandardChangesForLanguage(diffContent, language string) ([]Stan
 						NewValue: newEntry.Value,
 					},
 				},
-				Source: DiffChangeSource{
-					File: newEntry.File,
-					Hunk: newEntry.Hunk,
-					Line: newEntry.Line,
-				},
 			})
 			continue
 		}
@@ -779,11 +710,6 @@ func parseDiffToStandardChangesForLanguage(diffContent, language string) ([]Stan
 				language: DiffValue{
 					OldValue: oldEntry.Value,
 				},
-			},
-			Source: DiffChangeSource{
-				File: oldEntry.File,
-				Hunk: oldEntry.Hunk,
-				Line: oldEntry.Line,
 			},
 		})
 	}
@@ -803,19 +729,14 @@ func parseDiffToStandardChangesForLanguage(diffContent, language string) ([]Stan
 					NewValue: newEntry.Value,
 				},
 			},
-			Source: DiffChangeSource{
-				File: newEntry.File,
-				Hunk: newEntry.Hunk,
-				Line: newEntry.Line,
-			},
 		})
 	}
 
 	sort.Slice(changes, func(i, j int) bool {
-		if changes[i].Source.Line == changes[j].Source.Line {
-			return changes[i].Path < changes[j].Path
+		if changes[i].Path == changes[j].Path {
+			return changes[i].Action < changes[j].Action
 		}
-		return changes[i].Source.Line < changes[j].Source.Line
+		return changes[i].Path < changes[j].Path
 	})
 
 	return changes, nil
@@ -843,7 +764,7 @@ func (a *App) ParseDiffFile(diffContent string) ([]DiffChange, error) {
 		value := getValueForLanguage(change, "fr")
 		mapped := DiffChange{
 			Key:  change.Path,
-			Line: change.Source.Line,
+			Line: 0,
 		}
 
 		switch change.Action {
